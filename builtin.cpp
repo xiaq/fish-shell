@@ -93,7 +93,7 @@ struct builtin_data_t
     /**
        Function pointer tothe builtin implementation
     */
-    int (*func)(parser_t &parser, wchar_t **argv);
+    int (*func)(parser_t &parser, wchar_t **argv, const options_t &opts);
     /**
        Description of what the builtin does
     */
@@ -393,7 +393,7 @@ static void builtin_missing_argument(parser_t &parser, const wchar_t *cmd, const
 #include "builtin_jobs.cpp"
 
 /* builtin_test lives in builtin_test.cpp */
-int builtin_test(parser_t &parser, wchar_t **argv);
+int builtin_test(parser_t &parser, wchar_t **argv, const options_t &opts);
 
 /**
    List all current key bindings
@@ -544,7 +544,7 @@ static void builtin_bind_erase(wchar_t **seq, int all)
 /**
    The bind builtin, used for setting character sequences
 */
-static int builtin_bind(parser_t &parser, wchar_t **argv)
+static int builtin_bind(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
 
     enum
@@ -719,7 +719,7 @@ static int builtin_bind(parser_t &parser, wchar_t **argv)
 /**
    The block builtin, used for temporarily blocking events
 */
-static int builtin_block(parser_t &parser, wchar_t **argv)
+static int builtin_block(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
     enum
     {
@@ -871,7 +871,7 @@ static int builtin_block(parser_t &parser, wchar_t **argv)
    additional operational modes, such as printing a list of all
    builtins, printing help, etc.
 */
-static int builtin_builtin(parser_t &parser, wchar_t **argv)
+static int builtin_builtin(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
     int argc=builtin_count_args(argv);
     int list=0;
@@ -955,7 +955,7 @@ static int builtin_builtin(parser_t &parser, wchar_t **argv)
 /**
    Implementation of the builtin emit command, used to create events.
  */
-static int builtin_emit(parser_t &parser, wchar_t **argv)
+static int builtin_emit(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
     int argc=builtin_count_args(argv);
 
@@ -1027,7 +1027,7 @@ static int builtin_emit(parser_t &parser, wchar_t **argv)
    only a placeholder that prints the help message. Useful for
    commands that live in the parser.
 */
-static int builtin_generic(parser_t &parser, wchar_t **argv)
+static int builtin_generic(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
     int argc=builtin_count_args(argv);
     woptind=0;
@@ -1201,7 +1201,7 @@ static void functions_def(const wcstring &name, wcstring &out)
 /**
    The functions builtin, used for listing and erasing functions.
 */
-static int builtin_functions(parser_t &parser, wchar_t **argv)
+static int builtin_functions(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
     int i;
     int erase=0;
@@ -1582,7 +1582,7 @@ static bool builtin_echo_parse_numeric_sequence(const wchar_t *str, size_t *cons
     We also support a new option -s to mean "no spaces"
 */
 
-static int builtin_echo(parser_t &parser, wchar_t **argv)
+static int builtin_echo(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
     /* Skip first arg */
     if (! *argv++)
@@ -1705,7 +1705,7 @@ static int builtin_echo(parser_t &parser, wchar_t **argv)
 }
 
 /** The pwd builtin. We don't respect -P to resolve symbolic links because we try to always resolve them. */
-static int builtin_pwd(parser_t &parser, wchar_t **argv)
+static int builtin_pwd(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
     wchar_t dir_path[4096];
     wchar_t *res = wgetcwd(dir_path, 4096);
@@ -1725,7 +1725,7 @@ static int builtin_pwd(parser_t &parser, wchar_t **argv)
    The function builtin, used for providing subroutines.
    It calls various functions from function.c to perform any heavy lifting.
 */
-static int builtin_function(parser_t &parser, wchar_t **argv)
+static int builtin_function(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
     int argc = builtin_count_args(argv);
     int res=STATUS_BUILTIN_OK;
@@ -2075,7 +2075,7 @@ static int builtin_function(parser_t &parser, wchar_t **argv)
 /**
    The random builtin. For generating random numbers.
 */
-static int builtin_random(parser_t &parser, wchar_t **argv)
+static int builtin_random(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
     static int seeded=0;
     static struct drand48_data seed_buffer;
@@ -2190,7 +2190,7 @@ static int builtin_random(parser_t &parser, wchar_t **argv)
 /**
    The read builtin. Reads from stdin and stores the values in environment variables.
 */
-static int builtin_read(parser_t &parser, wchar_t **argv)
+static int builtin_read(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
     wchar_t *buff=0;
     int i, argc = builtin_count_args(argv);
@@ -2501,7 +2501,7 @@ static int builtin_read(parser_t &parser, wchar_t **argv)
 /**
    The status builtin. Gives various status information on fish.
 */
-static int builtin_status(parser_t &parser, wchar_t **argv)
+static int builtin_status(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
 
     enum
@@ -2746,7 +2746,7 @@ static int builtin_status(parser_t &parser, wchar_t **argv)
 /**
    The exit builtin. Calls reader_exit to exit and returns the value specified.
 */
-static int builtin_exit(parser_t &parser, wchar_t **argv)
+static int builtin_exit(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
     int argc = builtin_count_args(argv);
 
@@ -2796,7 +2796,7 @@ static int builtin_exit(parser_t &parser, wchar_t **argv)
    or to $HOME if none is specified. The directory can be relative to
    any directory in the CDPATH variable.
 */
-static int builtin_cd(parser_t &parser, wchar_t **argv)
+static int builtin_cd(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
     env_var_t dir_in;
     wcstring dir;
@@ -2908,7 +2908,7 @@ static int builtin_cd(parser_t &parser, wchar_t **argv)
    Implementation of the builtin count command, used to count the
    number of arguments sent to it.
  */
-static int builtin_count(parser_t &parser, wchar_t ** argv)
+static int builtin_count(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
     int argc;
     argc = builtin_count_args(argv);
@@ -2920,7 +2920,7 @@ static int builtin_count(parser_t &parser, wchar_t ** argv)
    Implementation of the builtin contains command, used to check if a
    specified string is part of a list.
  */
-static int builtin_contains(parser_t &parser, wchar_t ** argv)
+static int builtin_contains(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
     int argc;
     argc = builtin_count_args(argv);
@@ -3019,7 +3019,7 @@ static int builtin_contains(parser_t &parser, wchar_t ** argv)
 /**
    The  . (dot) builtin, sometimes called source. Evaluates the contents of a file.
 */
-static int builtin_source(parser_t &parser, wchar_t ** argv)
+static int builtin_source(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
     ASSERT_IS_MAIN_THREAD();
     int fd;
@@ -3124,7 +3124,7 @@ static void make_first(job_t *j)
 /**
    Builtin for putting a job in the foreground
 */
-static int builtin_fg(parser_t &parser, wchar_t **argv)
+static int builtin_fg(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
     job_t *j=NULL;
 
@@ -3308,7 +3308,7 @@ static int send_to_bg(parser_t &parser, job_t *j, const wchar_t *name)
 /**
    Builtin for putting a job in the background
 */
-static int builtin_bg(parser_t &parser, wchar_t **argv)
+static int builtin_bg(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
     int res = STATUS_BUILTIN_OK;
 
@@ -3375,7 +3375,7 @@ static int builtin_bg(parser_t &parser, wchar_t **argv)
 /**
    Builtin for looping over a list
 */
-static int builtin_for(parser_t &parser, wchar_t **argv)
+static int builtin_for(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
     int argc = builtin_count_args(argv);
     int res=STATUS_BUILTIN_ERROR;
@@ -3441,7 +3441,7 @@ static int builtin_for(parser_t &parser, wchar_t **argv)
 /**
    The begin builtin. Creates a nex block.
 */
-static int builtin_begin(parser_t &parser, wchar_t **argv)
+static int builtin_begin(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
     parser.push_block(new scope_block_t(BEGIN));
     parser.current_block->tok_pos = parser.get_pos();
@@ -3454,7 +3454,7 @@ static int builtin_begin(parser_t &parser, wchar_t **argv)
 
    The end command is whare a lot of the block-level magic happens.
 */
-static int builtin_end(parser_t &parser, wchar_t **argv)
+static int builtin_end(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
     if (!parser.current_block->outer)
     {
@@ -3584,7 +3584,7 @@ static int builtin_end(parser_t &parser, wchar_t **argv)
 /**
    Builtin for executing commands if an if statement is false
 */
-static int builtin_else(parser_t &parser, wchar_t **argv)
+static int builtin_else(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
     bool block_ok = false;
     if_block_t *if_block = NULL;
@@ -3626,7 +3626,7 @@ static int builtin_else(parser_t &parser, wchar_t **argv)
    This function handles both the 'continue' and the 'break' builtins
    that are used for loop control.
 */
-static int builtin_break_continue(parser_t &parser, wchar_t **argv)
+static int builtin_break_continue(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
     int is_break = (wcscmp(argv[0],L"break")==0);
     int argc = builtin_count_args(argv);
@@ -3678,7 +3678,7 @@ static int builtin_break_continue(parser_t &parser, wchar_t **argv)
    interactive debugger.
  */
 
-static int builtin_breakpoint(parser_t &parser, wchar_t **argv)
+static int builtin_breakpoint(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
     parser.push_block(new breakpoint_block_t());
 
@@ -3693,7 +3693,7 @@ static int builtin_breakpoint(parser_t &parser, wchar_t **argv)
 /**
    Function for handling the \c return builtin
 */
-static int builtin_return(parser_t &parser, wchar_t **argv)
+static int builtin_return(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
     int argc = builtin_count_args(argv);
     int status = proc_get_last_status();
@@ -3762,7 +3762,7 @@ static int builtin_return(parser_t &parser, wchar_t **argv)
    Builtin for executing one of several blocks of commands depending
    on the value of an argument.
 */
-static int builtin_switch(parser_t &parser, wchar_t **argv)
+static int builtin_switch(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
     int res=STATUS_BUILTIN_OK;
     int argc = builtin_count_args(argv);
@@ -3792,7 +3792,7 @@ static int builtin_switch(parser_t &parser, wchar_t **argv)
    Builtin used together with the switch builtin for conditional
    execution
 */
-static int builtin_case(parser_t &parser, wchar_t **argv)
+static int builtin_case(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
     int argc = builtin_count_args(argv);
     int i;
@@ -3838,7 +3838,7 @@ static int builtin_case(parser_t &parser, wchar_t **argv)
 /**
    History of commands executed by user
 */
-static int builtin_history(parser_t &parser, wchar_t **argv)
+static int builtin_history(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
     int argc = builtin_count_args(argv);
 
@@ -4076,16 +4076,25 @@ static int internal_help(const wchar_t *cmd)
 }
 
 
-int builtin_run(parser_t &parser, const wchar_t * const *argv, const io_chain_t &io)
+/**
+ XXX (xiaq:)
+ This is the how the prototype of builtin functions should look like, but
+ unfortunately they are not yet, mainly due to get wgetopt requires non-const
+ wchar_t**. The const correctness needs to be fixed, but since that can be
+ done along with the conversion to wcstring, I've mostly left it as is.
+*/
+typedef int (*builtin_func_t)(parser_t&, const wchar_t * const *, const options_t&);
+
+int builtin_run(parser_t &parser, const wchar_t * const *argv, const options_t &opts, const io_chain_t &io)
 {
-    int (*cmd)(parser_t &parser, const wchar_t * const *argv)=0;
+    builtin_func_t cmd = 0;
     real_io = &io;
 
     CHECK(argv, STATUS_BUILTIN_ERROR);
     CHECK(argv[0], STATUS_BUILTIN_ERROR);
 
     const builtin_data_t *data = builtin_lookup(argv[0]);
-    cmd = (int (*)(parser_t &parser, const wchar_t * const*))(data ? data->func : NULL);
+    cmd = (builtin_func_t)(data ? data->func : NULL);
 
     if (argv[1] != 0 && !internal_help(argv[0]))
     {
@@ -4100,7 +4109,7 @@ int builtin_run(parser_t &parser, const wchar_t * const *argv, const io_chain_t 
     {
         int status;
 
-        status = cmd(parser, argv);
+        status = cmd(parser, argv, opts);
         return status;
 
     }

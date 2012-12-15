@@ -197,7 +197,7 @@ static void write_part(const wchar_t *begin,
    The commandline builtin. It is used for specifying a new value for
    the commandline.
 */
-static int builtin_commandline(parser_t &parser, wchar_t **argv)
+static int builtin_commandline(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
 
     int buffer_part=0;

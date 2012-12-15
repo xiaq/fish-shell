@@ -378,7 +378,7 @@ static void print_variables(int include_values, int esc, bool shorten_ok, int sc
    The set builtin. Creates, updates and erases environment variables
    and environemnt variable arrays.
 */
-static int builtin_set(parser_t &parser, wchar_t **argv)
+static int builtin_set(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
 
     /**

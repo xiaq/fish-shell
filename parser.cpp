@@ -1432,6 +1432,7 @@ void parser_t::parse_job_argument_list(process_t *p,
                 }
 
                 p->set_argv(completions_to_wcstring_list(args));
+                p->set_opts(opts);
                 p->next = new process_t();
 
                 tok_next(tok);
@@ -1455,6 +1456,7 @@ void parser_t::parse_job_argument_list(process_t *p,
             {
                 if (!p->get_argv())
                     p->set_argv(completions_to_wcstring_list(args));
+                p->set_opts(opts);
                 if (tok_has_next(tok))
                     tok_next(tok);
 

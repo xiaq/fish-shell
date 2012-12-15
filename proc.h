@@ -134,6 +134,8 @@ private:
     /* narrow copy of argv0 so we don't have to convert after fork */
     narrow_string_rep_t argv0_narrow;
 
+    options_t opts;
+
     /* No copying */
     process_t(const process_t &rhs);
     void operator=(const process_t &rhs);
@@ -188,6 +190,16 @@ public:
     const char *argv0_cstr(void) const
     {
         return argv0_narrow.get();
+    }
+
+    void set_opts(const options_t &opts)
+    {
+        this->opts = opts;
+    }
+
+    const options_t &get_opts()
+    {
+        return opts;
     }
 
     /** actual command to pass to exec in case of EXTERNAL or INTERNAL_EXEC. */

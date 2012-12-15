@@ -252,7 +252,7 @@ static int set(int resource, int hard, int soft, rlim_t value)
    The ulimit builtin, used for setting resource limits. Defined in
    builtin_ulimit.c.
 */
-static int builtin_ulimit(parser_t &parser, wchar_t ** argv)
+static int builtin_ulimit(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
     int hard=0;
     int soft=0;

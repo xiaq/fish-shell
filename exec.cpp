@@ -986,7 +986,7 @@ void exec(parser_t &parser, job_t *j)
 
                     signal_unblock();
 
-                    p->status = builtin_run(parser, p->get_argv(), j->io);
+                    p->status = builtin_run(parser, p->get_argv(), p->get_opts(), j->io);
 
                     builtin_out_redirect=old_out;
                     builtin_err_redirect=old_err;

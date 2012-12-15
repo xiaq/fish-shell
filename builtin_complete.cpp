@@ -282,7 +282,7 @@ const wchar_t *builtin_complete_get_temporary_buffer()
    tab-completions. Calls the functions in complete.c for any heavy
    lifting. Defined in builtin_complete.c
 */
-static int builtin_complete(parser_t &parser, wchar_t **argv)
+static int builtin_complete(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
     ASSERT_IS_MAIN_THREAD();
     bool res=false;
