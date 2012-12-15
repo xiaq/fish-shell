@@ -15,6 +15,7 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include <map>
 #include <pthread.h>
 #include <string.h>
 
@@ -27,6 +28,7 @@ class completion_t;
 /* Common string type */
 typedef std::wstring wcstring;
 typedef std::vector<wcstring> wcstring_list_t;
+typedef std::map<wcstring, wcstring_list_t> options_t;
 
 /**
    Maximum number of bytes used by a single utf-8 character
@@ -340,6 +342,22 @@ inline wcstring to_string(const int &x)
     return to_string(static_cast<long>(x));
 }
 
+
+/* Option specification struct */
+struct option_spec_t
+{
+    bool takes_arg;
+    wchar_t short_form;
+    wcstring long_form;
+    wcstring description;
+};
+
+/* Function signature class */
+struct signature_t
+{
+    std::map<wchar_t, option_spec_t> short_options;
+    std::map<wcstring, option_spec_t> long_options;
+};
 
 /* Helper class for managing a null-terminated array of null-terminated strings (of some char type) */
 template <typename CharType_t>

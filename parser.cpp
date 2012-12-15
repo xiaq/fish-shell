@@ -277,6 +277,30 @@ The fish parser. Contains functions for parsing and evaluating code.
 
 
 /**
+   Option error
+*/
+#define OPTION_ERR_MSG _( L"Error in options" )
+
+
+/**
+   Long option requires an argument
+*/
+#define LONG_OPTION_TAKES_ARGUMENT_ERR_MSG _( L"Option '--%ls' requires an argument" )
+
+
+/**
+   Long option takes no argument
+*/
+#define LONG_OPTION_TAKES_NO_ARGUMENT_ERR_MSG _( L"Option '--%ls' takes no argument" )
+
+
+/**
+   Short option requires an argument
+*/
+#define SHORT_OPTION_TAKES_ARGUMENT_ERR_MSG _( L"Option '-%lc' requires an argument" )
+
+
+/**
    Datastructure to describe a block type, like while blocks, command substitution blocks, etc.
 */
 struct block_lookup_entry
@@ -1301,6 +1325,14 @@ job_t *parser_t::job_get_from_pid(int pid)
     return 0;
 }
 
+bool test_prefix(const wcstring &s, const wcstring &prefix)
+{
+    return !s.compare(0, prefix.size(), prefix);
+}
+
+/* Boolean options have this value when turned on */
+wcstring_list_t option_on(1, L"1");
+
 /**
    Parse options for the specified job
 
@@ -1314,6 +1346,7 @@ void parser_t::parse_job_argument_list(process_t *p,
                                        job_t *j,
                                        tokenizer_t *tok,
                                        std::vector<completion_t> &args,
+                                       options_t &opts,
                                        bool unskip)
 {
     int is_finished=0;
@@ -1333,6 +1366,42 @@ void parser_t::parse_job_argument_list(process_t *p,
       alternatives are worse.
     */
     proc_is_count = (args.at(0).completion == L"count");
+
+    /**
+     After seeing an option that requires an argument, opt_key is set to the
+     option's long form. For short options, the short form is saved in
+     short_opt_key (which is used in error messages). For short options with
+     no long form, opt_key is wcstring(1, short_opt_key).
+
+     When the next token of type TOK_STRING gets expanded, opt_key is
+     examined. If it's nonempty, its expansion list is saved to opts[opt_key]
+     instead of appended to args[], and both opt_key and short_opt_key are
+     cleared.
+    */
+    wchar_t short_opt_key = 0;
+    wcstring opt_key = L"";
+
+    /**
+     Marks whether the option list part is over. After it is set even tokens
+     that look like options are not considered as such.
+    */
+    bool opts_over = false;
+
+    signature_t *signature = 0;
+    switch (p->type)
+    {
+        case INTERNAL_BUILTIN:
+        {
+            // TODO fetch signature of builtin
+            break;
+        }
+        case INTERNAL_FUNCTION:
+        {
+            // TODO fetch signature of shellscript function
+            // a way to define signatures also needs to be introduced first.
+            break;
+        }
+    }
 
     while (1)
     {
@@ -1442,7 +1511,127 @@ void parser_t::parse_job_argument_list(process_t *p,
                         p->count_help_magic = 1;
                     }
 
-                    switch (expand_string(tok_last(tok), args, 0))
+                    const wcstring &token = tok->last_token;
+
+                    if (!opts_over && signature && opt_key.empty() &&
+                        token != L"-" && test_prefix(token, L"-"))
+                    {
+                        wcstring key;
+
+                        if (token == L"--")
+                        {
+                            opts_over = true;
+                            break;
+                        }
+                        else if (test_prefix(token, L"--"))
+                        {
+                            /* long option */
+                            wcstring::size_type key_end = token.find_first_of(L'=', 2);
+                            key = token.substr(2, key_end);
+                            if (!signature->long_options.count(key))
+                            {
+                                /**
+                                 XXX Unknown options are treated as a
+                                 non-options now (instead of resulting in an
+                                 error). This is for compatibility with
+                                 builtins and functions that provides no
+                                 option specification in their signatures and
+                                 look into $argv for options.
+                                */
+                                opts_over = true;
+                                goto NON_OPTION;
+                            }
+
+                            if (signature->long_options[key].takes_arg)
+                            {
+                                if (key_end != wcstring::npos)
+                                {
+                                    /**
+                                     XXX Set the tokenizer's position just
+                                     after the '=', so that the argument is
+                                     parsed and saved in the next iteration.
+                                     tok_set_pos() cannot be used since it
+                                     also calls tok_next(), which is not
+                                     desirable.
+                                    */
+                                    tok->buff -= token.size() - key_end;
+                                }
+                                opt_key = key;
+                                opts[opt_key] = wcstring_list_t();
+                            }
+                            else
+                            {
+                                if (key_end != wcstring::npos)
+                                {
+                                    error(SYNTAX_ERROR,
+                                          tok_get_pos(tok),
+                                          LONG_OPTION_TAKES_NO_ARGUMENT_ERR_MSG,
+                                          key.c_str());
+                                }
+                                else
+                                {
+                                    opts[key] = option_on;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            /* short option */
+                            wcstring::const_iterator opt_char;
+                            for (opt_char = token.begin()+1; opt_char != token.end(); opt_char++)
+                            {
+                                if (! signature->short_options.count(*opt_char))
+                                {
+                                    opts_over = true;
+                                    // XXX see comment about unknown
+                                    // options above
+                                    goto NON_OPTION;
+                                }
+                                if (signature->short_options[*opt_char].takes_arg)
+                                    break;
+                            }
+                            for (opt_char = token.begin(); opt_char != token.end(); opt_char++)
+                            {
+                                const option_spec_t &opt = signature->short_options[*opt_char];
+                                if (!opt.long_form.empty())
+                                {
+                                    key = opt.long_form;
+                                }
+                                else
+                                {
+                                    key = wcstring(1, opt.short_form);
+                                }
+                                if (opt.takes_arg)
+                                {
+                                    // XXX see comment about tokenizer above
+                                    tok->buff -= token.end() - 1 - opt_char;
+                                    short_opt_key = *opt_char;
+                                    opt_key = key;
+                                    opts[opt_key] = wcstring_list_t();
+                                    break;
+                                }
+                                else
+                                {
+                                    opts[key] = option_on;
+                                }
+                            }
+                        }
+                        break;
+                    }
+
+NON_OPTION:
+                    std::vector<completion_t> opt_args;
+                    std::vector<completion_t> *expand_output;
+                    if (opt_key.empty())
+                    {
+                        expand_output = &args;
+                    }
+                    else
+                    {
+                        expand_output = &opt_args;
+                    }
+
+                    switch (expand_string(tok_last(tok), *expand_output, 0))
                     {
                         case EXPAND_ERROR:
                         {
@@ -1481,6 +1670,16 @@ void parser_t::parse_job_argument_list(process_t *p,
                             break;
                         }
 
+                    }
+                    if (!opt_key.empty())
+                    {
+                        if (error_code == 0)
+                        {
+                            opts[opt_key] = completions_to_wcstring_list(opt_args);
+                        }
+                        opt_key = L"";
+                        short_opt_key = 0;
+                        opt_args.clear();
                     }
 
                 }
@@ -1658,6 +1857,24 @@ void parser_t::parse_job_argument_list(process_t *p,
                 break;
         }
 
+        if (is_finished && !opt_key.empty())
+        {
+            if (short_opt_key)
+            {
+                error(SYNTAX_ERROR,
+                      tok_get_pos(tok),
+                      SHORT_OPTION_TAKES_ARGUMENT_ERR_MSG ,
+                      short_opt_key);
+            }
+            else
+            {
+                error(SYNTAX_ERROR,
+                      tok_get_pos(tok),
+                      LONG_OPTION_TAKES_ARGUMENT_ERR_MSG ,
+                      opt_key.c_str());
+            }
+        }
+
         if ((is_finished) || (error_code != 0))
             break;
 
@@ -1714,6 +1931,7 @@ int parser_t::parse_job(process_t *p,
                         tokenizer_t *tok)
 {
     std::vector<completion_t> args; // The list that will become the argc array for the program
+    options_t opts; // The map that will become the opts for the builtin or shellscript function
     int use_function = 1;   // May functions be considered when checking what action this command represents
     int use_builtin = 1;    // May builtins be considered when checking what action this command represents
     int use_command = 1;    // May commands be considered when checking what action this command represents
@@ -2264,7 +2482,7 @@ int parser_t::parse_job(process_t *p,
         }
         else
         {
-            parse_job_argument_list(p, j, tok, args, unskip);
+            parse_job_argument_list(p, j, tok, args, opts, unskip);
         }
     }
 
