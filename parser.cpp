@@ -1500,17 +1500,6 @@ void parser_t::parse_job_argument_list(process_t *p,
 
                 if (!skip)
                 {
-                    if ((proc_is_count) &&
-                            (args.size() == 1) &&
-                            (parser_t::is_help(tok_last(tok), 0)) &&
-                            (p->type == INTERNAL_BUILTIN))
-                    {
-                        /*
-                          Display help for count
-                        */
-                        p->count_help_magic = 1;
-                    }
-
                     const wcstring &token = tok->last_token;
 
                     if (!opts_over && signature && opt_key.empty() &&

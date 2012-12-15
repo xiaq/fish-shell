@@ -515,7 +515,6 @@ process_t::process_t() :
     completed(0),
     stopped(0),
     status(0),
-    count_help_magic(0),
     next(NULL)
 #ifdef HAVE__PROC_SELF_STAT
     ,last_time(),

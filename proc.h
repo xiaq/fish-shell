@@ -211,9 +211,6 @@ public:
     /** reported status value */
     volatile int status;
 
-    /** Special flag to tell the evaluation function for count to print the help information */
-    int count_help_magic;
-
     /** Next process in pipeline. We own this and we are responsible for deleting it. */
     process_t *next;
 #ifdef HAVE__PROC_SELF_STAT
