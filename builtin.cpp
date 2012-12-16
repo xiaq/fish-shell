@@ -92,9 +92,14 @@ struct _option_spec_t
     const wchar_t *description;
 };
 
+#define HELP_OPTION_SPEC { false, L'h', L"help", L"Display help message" }
 #define END_OF_SIGNATURE { false, 0, L"", L"" }
 
-_option_spec_t empty_signature[] = { END_OF_SIGNATURE };
+_option_spec_t default_signature[] =
+{
+    HELP_OPTION_SPEC,
+    END_OF_SIGNATURE
+};
 
 /**
    Datastructure to describe a builtin.
@@ -4000,48 +4005,48 @@ static int builtin_history(parser_t &parser, wchar_t **argv, const options_t &op
 */
 static const _builtin_data_t _builtin_datas[]=
 {
-    { 		L".",  &builtin_source, empty_signature, N_(L"Evaluate contents of file")   },
-    { 		L"and",  &builtin_generic, empty_signature, N_(L"Execute command if previous command suceeded")  },
-    { 		L"begin",  &builtin_begin, empty_signature, N_(L"Create a block of code")   },
-    { 		L"bg",  &builtin_bg, empty_signature, N_(L"Send job to background")   },
-    { 		L"bind",  &builtin_bind, empty_signature, N_(L"Handle fish key bindings")  },
-    { 		L"block",  &builtin_block, empty_signature, N_(L"Temporarily block delivery of events") },
-    { 		L"break",  &builtin_break_continue, empty_signature, N_(L"Stop the innermost loop")   },
-    { 		L"breakpoint",  &builtin_breakpoint, empty_signature, N_(L"Temporarily halt execution of a script and launch an interactive debug prompt")   },
-    { 		L"builtin",  &builtin_builtin, empty_signature, N_(L"Run a builtin command instead of a function") },
-    { 		L"case",  &builtin_case, empty_signature, N_(L"Conditionally execute a block of commands")   },
-    { 		L"cd",  &builtin_cd, empty_signature, N_(L"Change working directory")   },
-    { 		L"command",   &builtin_generic, empty_signature, N_(L"Run a program instead of a function or builtin")   },
-    { 		L"commandline",  &builtin_commandline, empty_signature, N_(L"Set or get the commandline")   },
-    { 		L"complete",  &builtin_complete, empty_signature, N_(L"Edit command specific completions")   },
-    { 		L"contains",  &builtin_contains, empty_signature, N_(L"Search for a specified string in a list")   },
-    { 		L"continue",  &builtin_break_continue, empty_signature, N_(L"Skip the rest of the current lap of the innermost loop")   },
-    { 		L"count",  &builtin_count, empty_signature, N_(L"Count the number of arguments")   },
-    {       L"echo",  &builtin_echo, empty_signature, N_(L"Print arguments") },
-    { 		L"else",  &builtin_else, empty_signature, N_(L"Evaluate block if condition is false")   },
-    { 		L"emit",  &builtin_emit, empty_signature, N_(L"Emit an event") },
-    { 		L"end",  &builtin_end, empty_signature, N_(L"End a block of commands")   },
-    { 		L"exec",  &builtin_generic, empty_signature, N_(L"Run command in current process")  },
-    { 		L"exit",  &builtin_exit, empty_signature, N_(L"Exit the shell") },
-    { 		L"fg",  &builtin_fg, empty_signature, N_(L"Send job to foreground")   },
-    { 		L"for",  &builtin_for, empty_signature, N_(L"Perform a set of commands multiple times")   },
-    { 		L"function",  &builtin_function, empty_signature, N_(L"Define a new function")   },
-    { 		L"functions",  &builtin_functions, empty_signature, N_(L"List or remove functions")   },
-    { 		L"history",  &builtin_history, empty_signature, N_(L"History of commands executed by user")   },
-    { 		L"if",  &builtin_generic, empty_signature, N_(L"Evaluate block if condition is true")   },
-    { 		L"jobs",  &builtin_jobs, empty_signature, N_(L"Print currently running jobs")   },
-    { 		L"not",  &builtin_generic, empty_signature, N_(L"Negate exit status of job")  },
-    { 		L"or",  &builtin_generic, empty_signature, N_(L"Execute command if previous command failed")  },
-    { 		L"pwd",  &builtin_pwd, empty_signature, N_(L"Print the working directory")  },
-    { 		L"random",  &builtin_random, empty_signature, N_(L"Generate random number")  },
-    { 		L"read",  &builtin_read, empty_signature, N_(L"Read a line of input into variables")   },
-    { 		L"return",  &builtin_return, empty_signature, N_(L"Stop the currently evaluated function")   },
-    { 		L"set",  &builtin_set, empty_signature, N_(L"Handle environment variables")   },
-    { 		L"status",  &builtin_status, empty_signature, N_(L"Return status information about fish")  },
-    { 		L"switch",  &builtin_switch, empty_signature, N_(L"Conditionally execute a block of commands")   },
-    { 		L"test",  &builtin_test, empty_signature, N_(L"Test a condition")   },
-    { 		L"ulimit",  &builtin_ulimit, empty_signature, N_(L"Set or get the shells resource usage limits")  },
-    { 		L"while",  &builtin_generic, empty_signature, N_(L"Perform a command multiple times")   }
+    { 		L".",  &builtin_source, default_signature, N_(L"Evaluate contents of file")   },
+    { 		L"and",  &builtin_generic, default_signature, N_(L"Execute command if previous command suceeded")  },
+    { 		L"begin",  &builtin_begin, default_signature, N_(L"Create a block of code")   },
+    { 		L"bg",  &builtin_bg, default_signature, N_(L"Send job to background")   },
+    { 		L"bind",  &builtin_bind, default_signature, N_(L"Handle fish key bindings")  },
+    { 		L"block",  &builtin_block, default_signature, N_(L"Temporarily block delivery of events") },
+    { 		L"break",  &builtin_break_continue, default_signature, N_(L"Stop the innermost loop")   },
+    { 		L"breakpoint",  &builtin_breakpoint, default_signature, N_(L"Temporarily halt execution of a script and launch an interactive debug prompt")   },
+    { 		L"builtin",  &builtin_builtin, default_signature, N_(L"Run a builtin command instead of a function") },
+    { 		L"case",  &builtin_case, default_signature, N_(L"Conditionally execute a block of commands")   },
+    { 		L"cd",  &builtin_cd, default_signature, N_(L"Change working directory")   },
+    { 		L"command",   &builtin_generic, default_signature, N_(L"Run a program instead of a function or builtin")   },
+    { 		L"commandline",  &builtin_commandline, default_signature, N_(L"Set or get the commandline")   },
+    { 		L"complete",  &builtin_complete, default_signature, N_(L"Edit command specific completions")   },
+    { 		L"contains",  &builtin_contains, default_signature, N_(L"Search for a specified string in a list")   },
+    { 		L"continue",  &builtin_break_continue, default_signature, N_(L"Skip the rest of the current lap of the innermost loop")   },
+    { 		L"count",  &builtin_count, default_signature, N_(L"Count the number of arguments")   },
+    {       L"echo",  &builtin_echo, default_signature, N_(L"Print arguments") },
+    { 		L"else",  &builtin_else, default_signature, N_(L"Evaluate block if condition is false")   },
+    { 		L"emit",  &builtin_emit, default_signature, N_(L"Emit an event") },
+    { 		L"end",  &builtin_end, default_signature, N_(L"End a block of commands")   },
+    { 		L"exec",  &builtin_generic, default_signature, N_(L"Run command in current process")  },
+    { 		L"exit",  &builtin_exit, default_signature, N_(L"Exit the shell") },
+    { 		L"fg",  &builtin_fg, default_signature, N_(L"Send job to foreground")   },
+    { 		L"for",  &builtin_for, default_signature, N_(L"Perform a set of commands multiple times")   },
+    { 		L"function",  &builtin_function, default_signature, N_(L"Define a new function")   },
+    { 		L"functions",  &builtin_functions, default_signature, N_(L"List or remove functions")   },
+    { 		L"history",  &builtin_history, default_signature, N_(L"History of commands executed by user")   },
+    { 		L"if",  &builtin_generic, default_signature, N_(L"Evaluate block if condition is true")   },
+    { 		L"jobs",  &builtin_jobs, default_signature, N_(L"Print currently running jobs")   },
+    { 		L"not",  &builtin_generic, default_signature, N_(L"Negate exit status of job")  },
+    { 		L"or",  &builtin_generic, default_signature, N_(L"Execute command if previous command failed")  },
+    { 		L"pwd",  &builtin_pwd, default_signature, N_(L"Print the working directory")  },
+    { 		L"random",  &builtin_random, default_signature, N_(L"Generate random number")  },
+    { 		L"read",  &builtin_read, default_signature, N_(L"Read a line of input into variables")   },
+    { 		L"return",  &builtin_return, default_signature, N_(L"Stop the currently evaluated function")   },
+    { 		L"set",  &builtin_set, default_signature, N_(L"Handle environment variables")   },
+    { 		L"status",  &builtin_status, default_signature, N_(L"Return status information about fish")  },
+    { 		L"switch",  &builtin_switch, default_signature, N_(L"Conditionally execute a block of commands")   },
+    { 		L"test",  &builtin_test, default_signature, N_(L"Test a condition")   },
+    { 		L"ulimit",  &builtin_ulimit, default_signature, N_(L"Set or get the shells resource usage limits")  },
+    { 		L"while",  &builtin_generic, default_signature, N_(L"Perform a command multiple times")   }
 };
 
 static std::map<wcstring, const builtin_data_t*> builtin_datas;
@@ -4106,7 +4111,7 @@ static int internal_help(const wchar_t *cmd)
 {
     CHECK(cmd, 0);
     return contains(cmd, L"for", L"while", L"function",
-                    L"if", L"end", L"switch", L"case", L"count");
+                    L"if", L"end", L"switch", L"case");
 }
 
 
@@ -4130,13 +4135,10 @@ int builtin_run(parser_t &parser, const wchar_t * const *argv, const options_t &
     const builtin_data_t *data = builtin_lookup(argv[0]);
     cmd = (builtin_func_t)(data ? data->func : NULL);
 
-    if (argv[1] != 0 && !internal_help(argv[0]))
+    if (!internal_help(argv[0]) && (argv[1] == 0 && opts.size() == 1 && opts.count(L"help")))
     {
-        if (argv[2] == 0 && (parser.is_help(argv[1], 0)))
-        {
-            builtin_print_help(parser, argv[0], stdout_buffer);
-            return STATUS_BUILTIN_OK;
-        }
+        builtin_print_help(parser, argv[0], stdout_buffer);
+        return STATUS_BUILTIN_OK;
     }
 
     if (data != NULL)
