@@ -82,9 +82,27 @@
 #define FG_MSG _( L"Send job %d, '%ls' to foreground\n" )
 
 /**
+   A version of option_spec_t that can be initialized with an initializer list
+*/
+struct _option_spec_t
+{
+    bool takes_arg;
+    wchar_t short_form;
+    const wchar_t *long_form;
+    const wchar_t *description;
+};
+
+#define END_OF_SIGNATURE { false, 0, L"", L"" }
+
+_option_spec_t empty_signature[] = { END_OF_SIGNATURE };
+
+/**
    Datastructure to describe a builtin.
 */
-struct builtin_data_t
+
+typedef int (*_builtin_func_t)(parser_t &parser, wchar_t **argv, const options_t &opts);
+
+struct _builtin_data_t
 {
     /**
        Name of the builtin
@@ -93,25 +111,24 @@ struct builtin_data_t
     /**
        Function pointer tothe builtin implementation
     */
-    int (*func)(parser_t &parser, wchar_t **argv, const options_t &opts);
+    _builtin_func_t func;
+    /**
+       Pointer to signature
+    */
+    const struct _option_spec_t *signature;
     /**
        Description of what the builtin does
     */
     const wchar_t *desc;
-
-    bool operator<(const wcstring &) const;
-    bool operator<(const builtin_data_t *) const;
 };
 
-bool builtin_data_t::operator<(const wcstring &other) const
+struct builtin_data_t
 {
-    return wcscmp(this->name, other.c_str()) < 0;
-}
-
-bool builtin_data_t::operator<(const builtin_data_t *other) const
-{
-    return wcscmp(this->name, other->name) < 0;
-}
+    _builtin_func_t func;
+    const signature_t signature;
+    const wcstring desc;
+    builtin_data_t(_builtin_func_t f, const signature_t &sig, const wcstring &d) : func(f), signature(sig), desc(d) {}
+};
 
 int builtin_out_redirect;
 int builtin_err_redirect;
@@ -3975,74 +3992,65 @@ static int builtin_history(parser_t &parser, wchar_t **argv, const options_t &op
 /*
   END OF BUILTIN COMMANDS
   Below are functions for handling the builtin commands.
-  THESE MUST BE SORTED BY NAME! Completion lookup uses binary search.
 */
 
 /**
    Data about all the builtin commands in fish.
    Functions that are bound to builtin_generic are handled directly by the parser.
-   NOTE: These must be kept in sorted order!
 */
-static const builtin_data_t builtin_datas[]=
+static const _builtin_data_t _builtin_datas[]=
 {
-    { 		L".",  &builtin_source, N_(L"Evaluate contents of file")   },
-    { 		L"and",  &builtin_generic, N_(L"Execute command if previous command suceeded")  },
-    { 		L"begin",  &builtin_begin, N_(L"Create a block of code")   },
-    { 		L"bg",  &builtin_bg, N_(L"Send job to background")   },
-    { 		L"bind",  &builtin_bind, N_(L"Handle fish key bindings")  },
-    { 		L"block",  &builtin_block, N_(L"Temporarily block delivery of events") },
-    { 		L"break",  &builtin_break_continue, N_(L"Stop the innermost loop")   },
-    { 		L"breakpoint",  &builtin_breakpoint, N_(L"Temporarily halt execution of a script and launch an interactive debug prompt")   },
-    { 		L"builtin",  &builtin_builtin, N_(L"Run a builtin command instead of a function") },
-    { 		L"case",  &builtin_case, N_(L"Conditionally execute a block of commands")   },
-    { 		L"cd",  &builtin_cd, N_(L"Change working directory")   },
-    { 		L"command",   &builtin_generic, N_(L"Run a program instead of a function or builtin")   },
-    { 		L"commandline",  &builtin_commandline, N_(L"Set or get the commandline")   },
-    { 		L"complete",  &builtin_complete, N_(L"Edit command specific completions")   },
-    { 		L"contains",  &builtin_contains, N_(L"Search for a specified string in a list")   },
-    { 		L"continue",  &builtin_break_continue, N_(L"Skip the rest of the current lap of the innermost loop")   },
-    { 		L"count",  &builtin_count, N_(L"Count the number of arguments")   },
-    {       L"echo",  &builtin_echo, N_(L"Print arguments") },
-    { 		L"else",  &builtin_else, N_(L"Evaluate block if condition is false")   },
-    { 		L"emit",  &builtin_emit, N_(L"Emit an event") },
-    { 		L"end",  &builtin_end, N_(L"End a block of commands")   },
-    { 		L"exec",  &builtin_generic, N_(L"Run command in current process")  },
-    { 		L"exit",  &builtin_exit, N_(L"Exit the shell") },
-    { 		L"fg",  &builtin_fg, N_(L"Send job to foreground")   },
-    { 		L"for",  &builtin_for, N_(L"Perform a set of commands multiple times")   },
-    { 		L"function",  &builtin_function, N_(L"Define a new function")   },
-    { 		L"functions",  &builtin_functions, N_(L"List or remove functions")   },
-    { 		L"history",  &builtin_history, N_(L"History of commands executed by user")   },
-    { 		L"if",  &builtin_generic, N_(L"Evaluate block if condition is true")   },
-    { 		L"jobs",  &builtin_jobs, N_(L"Print currently running jobs")   },
-    { 		L"not",  &builtin_generic, N_(L"Negate exit status of job")  },
-    { 		L"or",  &builtin_generic, N_(L"Execute command if previous command failed")  },
-    { 		L"pwd",  &builtin_pwd, N_(L"Print the working directory")  },
-    { 		L"random",  &builtin_random, N_(L"Generate random number")  },
-    { 		L"read",  &builtin_read, N_(L"Read a line of input into variables")   },
-    { 		L"return",  &builtin_return, N_(L"Stop the currently evaluated function")   },
-    { 		L"set",  &builtin_set, N_(L"Handle environment variables")   },
-    { 		L"status",  &builtin_status, N_(L"Return status information about fish")  },
-    { 		L"switch",  &builtin_switch, N_(L"Conditionally execute a block of commands")   },
-    { 		L"test",  &builtin_test, N_(L"Test a condition")   },
-    { 		L"ulimit",  &builtin_ulimit, N_(L"Set or get the shells resource usage limits")  },
-    { 		L"while",  &builtin_generic, N_(L"Perform a command multiple times")   }
+    { 		L".",  &builtin_source, empty_signature, N_(L"Evaluate contents of file")   },
+    { 		L"and",  &builtin_generic, empty_signature, N_(L"Execute command if previous command suceeded")  },
+    { 		L"begin",  &builtin_begin, empty_signature, N_(L"Create a block of code")   },
+    { 		L"bg",  &builtin_bg, empty_signature, N_(L"Send job to background")   },
+    { 		L"bind",  &builtin_bind, empty_signature, N_(L"Handle fish key bindings")  },
+    { 		L"block",  &builtin_block, empty_signature, N_(L"Temporarily block delivery of events") },
+    { 		L"break",  &builtin_break_continue, empty_signature, N_(L"Stop the innermost loop")   },
+    { 		L"breakpoint",  &builtin_breakpoint, empty_signature, N_(L"Temporarily halt execution of a script and launch an interactive debug prompt")   },
+    { 		L"builtin",  &builtin_builtin, empty_signature, N_(L"Run a builtin command instead of a function") },
+    { 		L"case",  &builtin_case, empty_signature, N_(L"Conditionally execute a block of commands")   },
+    { 		L"cd",  &builtin_cd, empty_signature, N_(L"Change working directory")   },
+    { 		L"command",   &builtin_generic, empty_signature, N_(L"Run a program instead of a function or builtin")   },
+    { 		L"commandline",  &builtin_commandline, empty_signature, N_(L"Set or get the commandline")   },
+    { 		L"complete",  &builtin_complete, empty_signature, N_(L"Edit command specific completions")   },
+    { 		L"contains",  &builtin_contains, empty_signature, N_(L"Search for a specified string in a list")   },
+    { 		L"continue",  &builtin_break_continue, empty_signature, N_(L"Skip the rest of the current lap of the innermost loop")   },
+    { 		L"count",  &builtin_count, empty_signature, N_(L"Count the number of arguments")   },
+    {       L"echo",  &builtin_echo, empty_signature, N_(L"Print arguments") },
+    { 		L"else",  &builtin_else, empty_signature, N_(L"Evaluate block if condition is false")   },
+    { 		L"emit",  &builtin_emit, empty_signature, N_(L"Emit an event") },
+    { 		L"end",  &builtin_end, empty_signature, N_(L"End a block of commands")   },
+    { 		L"exec",  &builtin_generic, empty_signature, N_(L"Run command in current process")  },
+    { 		L"exit",  &builtin_exit, empty_signature, N_(L"Exit the shell") },
+    { 		L"fg",  &builtin_fg, empty_signature, N_(L"Send job to foreground")   },
+    { 		L"for",  &builtin_for, empty_signature, N_(L"Perform a set of commands multiple times")   },
+    { 		L"function",  &builtin_function, empty_signature, N_(L"Define a new function")   },
+    { 		L"functions",  &builtin_functions, empty_signature, N_(L"List or remove functions")   },
+    { 		L"history",  &builtin_history, empty_signature, N_(L"History of commands executed by user")   },
+    { 		L"if",  &builtin_generic, empty_signature, N_(L"Evaluate block if condition is true")   },
+    { 		L"jobs",  &builtin_jobs, empty_signature, N_(L"Print currently running jobs")   },
+    { 		L"not",  &builtin_generic, empty_signature, N_(L"Negate exit status of job")  },
+    { 		L"or",  &builtin_generic, empty_signature, N_(L"Execute command if previous command failed")  },
+    { 		L"pwd",  &builtin_pwd, empty_signature, N_(L"Print the working directory")  },
+    { 		L"random",  &builtin_random, empty_signature, N_(L"Generate random number")  },
+    { 		L"read",  &builtin_read, empty_signature, N_(L"Read a line of input into variables")   },
+    { 		L"return",  &builtin_return, empty_signature, N_(L"Stop the currently evaluated function")   },
+    { 		L"set",  &builtin_set, empty_signature, N_(L"Handle environment variables")   },
+    { 		L"status",  &builtin_status, empty_signature, N_(L"Return status information about fish")  },
+    { 		L"switch",  &builtin_switch, empty_signature, N_(L"Conditionally execute a block of commands")   },
+    { 		L"test",  &builtin_test, empty_signature, N_(L"Test a condition")   },
+    { 		L"ulimit",  &builtin_ulimit, empty_signature, N_(L"Set or get the shells resource usage limits")  },
+    { 		L"while",  &builtin_generic, empty_signature, N_(L"Perform a command multiple times")   }
 };
 
-#define BUILTIN_COUNT (sizeof builtin_datas / sizeof *builtin_datas)
+static std::map<wcstring, const builtin_data_t*> builtin_datas;
+
+#define BUILTIN_COUNT (sizeof _builtin_datas / sizeof *_builtin_datas)
 
 static const builtin_data_t *builtin_lookup(const wcstring &name)
 {
-    const builtin_data_t *array_end = builtin_datas + BUILTIN_COUNT;
-    const builtin_data_t *found = std::lower_bound(builtin_datas, array_end, name);
-    if (found != array_end && name == found->name)
-    {
-        return found;
-    }
-    else
-    {
-        return NULL;
-    }
+    return builtin_datas[name];
 }
 
 void builtin_init()
@@ -4051,12 +4059,38 @@ void builtin_init()
     wopterr = 0;
     for (size_t i=0; i < BUILTIN_COUNT; i++)
     {
-        intern_static(builtin_datas[i].name);
+        const wcstring name(_builtin_datas[i].name);
+        signature_t signature;
+        for (const _option_spec_t *p = _builtin_datas[i].signature; ; p++)
+        {
+            if (p->short_form == L'\0' && p->long_form[0] == L'\0')
+            {
+                break;
+            }
+            option_spec_t q;
+            q.takes_arg = p->takes_arg;
+            q.short_form = p->short_form;
+            q.long_form = p->long_form;
+            q.description = p->description;
+            if (p->short_form != L'\0')
+            {
+                signature.short_options[q.short_form] = q;
+            }
+            if (p->long_form[0] != L'\0')
+            {
+                signature.long_options[q.long_form] = q;
+            }
+        }
+        builtin_datas[name] = new builtin_data_t(
+                _builtin_datas[i].func, signature, _builtin_datas[i].desc);
     }
 }
 
 void builtin_destroy()
 {
+    /**
+       XXX Should builtin_datas be freed?
+    */
 }
 
 int builtin_exists(const wcstring &cmd)
@@ -4127,7 +4161,7 @@ wcstring_list_t builtin_get_names(void)
     result.reserve(BUILTIN_COUNT);
     for (size_t i=0; i < BUILTIN_COUNT; i++)
     {
-        result.push_back(builtin_datas[i].name);
+        result.push_back(_builtin_datas[i].name);
     }
     return result;
 }
@@ -4136,7 +4170,7 @@ void builtin_get_names(std::vector<completion_t> &list)
 {
     for (size_t i=0; i < BUILTIN_COUNT; i++)
     {
-        list.push_back(completion_t(builtin_datas[i].name));
+        list.push_back(completion_t(_builtin_datas[i].name));
     }
 }
 
@@ -4146,7 +4180,7 @@ wcstring builtin_get_desc(const wcstring &name)
     const builtin_data_t *builtin = builtin_lookup(name);
     if (builtin)
     {
-        result = _(builtin->desc);
+        result = _(builtin->desc.c_str());
     }
     return result;
 }
