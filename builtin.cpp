@@ -4174,6 +4174,16 @@ void builtin_get_names(std::vector<completion_t> &list)
     }
 }
 
+const signature_t *builtin_get_signature(const wcstring &name)
+{
+    const builtin_data_t *builtin = builtin_datas[name];
+    if (builtin)
+    {
+        return &builtin->signature;
+    }
+    return 0;
+}
+
 wcstring builtin_get_desc(const wcstring &name)
 {
     wcstring result;

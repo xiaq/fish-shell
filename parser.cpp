@@ -1387,12 +1387,12 @@ void parser_t::parse_job_argument_list(process_t *p,
     */
     bool opts_over = false;
 
-    signature_t *signature = 0;
+    const signature_t *signature = 0;
     switch (p->type)
     {
         case INTERNAL_BUILTIN:
         {
-            // TODO fetch signature of builtin
+            signature = builtin_get_signature(args.at(0).completion);
             break;
         }
         case INTERNAL_FUNCTION:
@@ -1533,7 +1533,7 @@ void parser_t::parse_job_argument_list(process_t *p,
                                 goto NON_OPTION;
                             }
 
-                            if (signature->long_options[key].takes_arg)
+                            if (signature->long_options.at(key).takes_arg)
                             {
                                 if (key_end != wcstring::npos)
                                 {
@@ -1578,12 +1578,12 @@ void parser_t::parse_job_argument_list(process_t *p,
                                     // options above
                                     goto NON_OPTION;
                                 }
-                                if (signature->short_options[*opt_char].takes_arg)
+                                if (signature->short_options.at(*opt_char).takes_arg)
                                     break;
                             }
-                            for (opt_char = token.begin(); opt_char != token.end(); opt_char++)
+                            for (opt_char = token.begin()+1; opt_char != token.end(); opt_char++)
                             {
-                                const option_spec_t &opt = signature->short_options[*opt_char];
+                                const option_spec_t &opt = signature->short_options.at(*opt_char);
                                 if (!opt.long_form.empty())
                                 {
                                     key = opt.long_form;

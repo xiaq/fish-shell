@@ -159,6 +159,12 @@ void builtin_pop_io(parser_t &parser);
 
 
 /**
+   Get the signature of the specified builtin.
+*/
+const signature_t *builtin_get_signature(const wcstring &name);
+
+
+/**
    Return a one-line description of the specified builtin.
 */
 wcstring builtin_get_desc(const wcstring &b);
