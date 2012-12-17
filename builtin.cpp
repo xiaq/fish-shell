@@ -566,6 +566,19 @@ static void builtin_bind_erase(wchar_t **seq, int all)
 /**
    The bind builtin, used for setting character sequences
 */
+
+_option_spec_t bind_signature[] =
+{
+    { false, L'a', L"all", L"Show unavailable key bindings/erase all bindings" },
+    { false, L'e', L"erase", L"Erase mode" },
+    { false, L'f', L"function-names", L"Print names of available functions" },
+    { false, L'h', L"help", L"Display help and exit" },
+    { false, L'k', L"key", L"Specify key name, not sequence" },
+    { false, L'K', L"key-names", L"Print names of available keys" },
+    HELP_OPTION_SPEC,
+    END_OF_SIGNATURE
+};
+
 static int builtin_bind(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
 
@@ -585,97 +598,25 @@ static int builtin_bind(parser_t &parser, wchar_t **argv, const options_t &opts)
 
     int use_terminfo = 0;
 
-    woptind=0;
-
-    static const struct woption
-            long_options[] =
+    if (opts.count(L"all"))
     {
-        {
-            L"all", no_argument, 0, 'a'
-        }
-        ,
-        {
-            L"erase", no_argument, 0, 'e'
-        }
-        ,
-        {
-            L"function-names", no_argument, 0, 'f'
-        }
-        ,
-        {
-            L"help", no_argument, 0, 'h'
-        }
-        ,
-        {
-            L"key", no_argument, 0, 'k'
-        }
-        ,
-        {
-            L"key-names", no_argument, 0, 'K'
-        }
-        ,
-        {
-            0, 0, 0, 0
-        }
+        all = 1;
     }
-    ;
-
-    while (1)
+    if (opts.count(L"key"))
     {
-        int opt_index = 0;
-        int opt = wgetopt_long(argc,
-                               argv,
-                               L"aehkKf",
-                               long_options,
-                               &opt_index);
-
-        if (opt == -1)
-            break;
-
-        switch (opt)
-        {
-            case 0:
-                if (long_options[opt_index].flag != 0)
-                    break;
-                append_format(stderr_buffer,
-                              BUILTIN_ERR_UNKNOWN,
-                              argv[0],
-                              long_options[opt_index].name);
-                builtin_print_help(parser, argv[0], stderr_buffer);
-
-                return STATUS_BUILTIN_ERROR;
-
-            case 'a':
-                all = 1;
-                break;
-
-            case 'e':
-                mode = BIND_ERASE;
-                break;
-
-
-            case 'h':
-                builtin_print_help(parser, argv[0], stdout_buffer);
-                return STATUS_BUILTIN_OK;
-
-            case 'k':
-                use_terminfo = 1;
-                break;
-
-            case 'K':
-                mode = BIND_KEY_NAMES;
-                break;
-
-            case 'f':
-                mode = BIND_FUNCTION_NAMES;
-                break;
-
-            case '?':
-                builtin_unknown_option(parser, argv[0], argv[woptind-1]);
-                return STATUS_BUILTIN_ERROR;
-
-        }
-
+        use_terminfo = 1;
+    }
+    if (opts.count(L"erase"))
+    {
+        mode = BIND_ERASE;
+    }
+    else if (opts.count(L"key-names"))
+    {
+        mode = BIND_KEY_NAMES;
+    }
+    else if (opts.count(L"function-names"))
+    {
+        mode = BIND_FUNCTION_NAMES;
     }
 
     switch (mode)
@@ -683,13 +624,13 @@ static int builtin_bind(parser_t &parser, wchar_t **argv, const options_t &opts)
 
         case BIND_ERASE:
         {
-            builtin_bind_erase(&argv[woptind], all);
+            builtin_bind_erase(&argv[1], all);
             break;
         }
 
         case BIND_INSERT:
         {
-            switch (argc-woptind)
+            switch (argc-1)
             {
                 case 0:
                 {
@@ -699,14 +640,14 @@ static int builtin_bind(parser_t &parser, wchar_t **argv, const options_t &opts)
 
                 case 2:
                 {
-                    builtin_bind_add(argv[woptind], argv[woptind+1], use_terminfo);
+                    builtin_bind_add(argv[1], argv[2], use_terminfo);
                     break;
                 }
 
                 default:
                 {
                     res = STATUS_BUILTIN_ERROR;
-                    append_format(stderr_buffer, _(L"%ls: Expected zero or two parameters, got %d"), argv[0], argc-woptind);
+                    append_format(stderr_buffer, _(L"%ls: Expected zero or two parameters, got %d"), argv[0], argc);
                     break;
                 }
             }
@@ -893,70 +834,18 @@ static int builtin_block(parser_t &parser, wchar_t **argv, const options_t &opts
    additional operational modes, such as printing a list of all
    builtins, printing help, etc.
 */
+
+_option_spec_t builtin_signature[] =
+{
+    { false, L'h', L"help", L"Display help and exit" },
+    { false, L'n', L"names", L"Print names of all existing builtins" },
+    HELP_OPTION_SPEC,
+    END_OF_SIGNATURE
+};
+
 static int builtin_builtin(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
-    int argc=builtin_count_args(argv);
-    int list=0;
-
-    woptind=0;
-
-    static const struct woption
-            long_options[] =
-    {
-        {
-            L"names", no_argument, 0, 'n'
-        }
-        ,
-        {
-            L"help", no_argument, 0, 'h'
-        }
-        ,
-        {
-            0, 0, 0, 0
-        }
-    }
-    ;
-
-    while (1)
-    {
-        int opt_index = 0;
-
-        int opt = wgetopt_long(argc,
-                               argv,
-                               L"nh",
-                               long_options,
-                               &opt_index);
-        if (opt == -1)
-            break;
-
-        switch (opt)
-        {
-            case 0:
-                if (long_options[opt_index].flag != 0)
-                    break;
-                append_format(stderr_buffer,
-                              BUILTIN_ERR_UNKNOWN,
-                              argv[0],
-                              long_options[opt_index].name);
-                builtin_print_help(parser, argv[0], stderr_buffer);
-
-
-                return STATUS_BUILTIN_ERROR;
-            case 'h':
-                builtin_print_help(parser, argv[0], stdout_buffer);
-                return STATUS_BUILTIN_OK;
-
-            case 'n':
-                list=1;
-                break;
-
-            case '?':
-                builtin_unknown_option(parser, argv[0], argv[woptind-1]);
-                return STATUS_BUILTIN_ERROR;
-
-        }
-
-    }
+    int list = opts.count(L"names");
 
     if (list)
     {
@@ -981,60 +870,9 @@ static int builtin_emit(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
     int argc=builtin_count_args(argv);
 
-    woptind=0;
-
-    static const struct woption
-            long_options[] =
+    for (int i = 1; i < argc; i++)
     {
-        {
-            L"help", no_argument, 0, 'h'
-        }
-        ,
-        {
-            0, 0, 0, 0
-        }
-    }
-    ;
-
-    while (1)
-    {
-        int opt_index = 0;
-
-        int opt = wgetopt_long(argc,
-                               argv,
-                               L"h",
-                               long_options,
-                               &opt_index);
-        if (opt == -1)
-            break;
-
-        switch (opt)
-        {
-            case 0:
-                if (long_options[opt_index].flag != 0)
-                    break;
-                append_format(stderr_buffer,
-                              BUILTIN_ERR_UNKNOWN,
-                              argv[0],
-                              long_options[opt_index].name);
-                builtin_print_help(parser, argv[0], stderr_buffer);
-                return STATUS_BUILTIN_ERROR;
-
-            case 'h':
-                builtin_print_help(parser, argv[0], stdout_buffer);
-                return STATUS_BUILTIN_OK;
-
-            case '?':
-                builtin_unknown_option(parser, argv[0], argv[woptind-1]);
-                return STATUS_BUILTIN_ERROR;
-
-        }
-
-    }
-
-    for (; woptind < argc; woptind++)
-    {
-        event_fire_generic(argv[woptind]);
+        event_fire_generic(argv[i]);
     }
 
     return STATUS_BUILTIN_OK;
@@ -1223,6 +1061,17 @@ static void functions_def(const wcstring &name, wcstring &out)
 /**
    The functions builtin, used for listing and erasing functions.
 */
+
+_option_spec_t functions_signature[] =
+{
+    { false, L'a', L"all", L"Show hidden functions" },
+    { false, L'h', L"help", L"Display help and exit" },
+    { false, L'q', L"query", L"Test if function is defined" },
+    { false, L'n', L"names", L"List the names of the functions, but not their definition" },
+    HELP_OPTION_SPEC,
+    END_OF_SIGNATURE
+};
+
 static int builtin_functions(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
     int i;
@@ -4009,7 +3858,7 @@ static const _builtin_data_t _builtin_datas[]=
     { 		L"and",  &builtin_generic, default_signature, N_(L"Execute command if previous command suceeded")  },
     { 		L"begin",  &builtin_begin, default_signature, N_(L"Create a block of code")   },
     { 		L"bg",  &builtin_bg, default_signature, N_(L"Send job to background")   },
-    { 		L"bind",  &builtin_bind, default_signature, N_(L"Handle fish key bindings")  },
+    { 		L"bind",  &builtin_bind, bind_signature, N_(L"Handle fish key bindings")  },
     { 		L"block",  &builtin_block, default_signature, N_(L"Temporarily block delivery of events") },
     { 		L"break",  &builtin_break_continue, default_signature, N_(L"Stop the innermost loop")   },
     { 		L"breakpoint",  &builtin_breakpoint, default_signature, N_(L"Temporarily halt execution of a script and launch an interactive debug prompt")   },
