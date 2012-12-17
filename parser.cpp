@@ -1533,7 +1533,7 @@ void parser_t::parse_job_argument_list(process_t *p,
                                 goto NON_OPTION;
                             }
 
-                            if (signature->long_options.at(key).takes_arg)
+                            if (signature->long_options.at(key)->takes_arg)
                             {
                                 if (key_end != wcstring::npos)
                                 {
@@ -1578,12 +1578,12 @@ void parser_t::parse_job_argument_list(process_t *p,
                                     // options above
                                     goto NON_OPTION;
                                 }
-                                if (signature->short_options.at(*opt_char).takes_arg)
+                                if (signature->short_options.at(*opt_char)->takes_arg)
                                     break;
                             }
                             for (opt_char = token.begin()+1; opt_char != token.end(); opt_char++)
                             {
-                                const option_spec_t &opt = signature->short_options.at(*opt_char);
+                                const option_spec_t &opt = *signature->short_options.at(*opt_char);
                                 if (!opt.long_form.empty())
                                 {
                                     key = opt.long_form;

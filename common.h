@@ -350,13 +350,16 @@ struct option_spec_t
     wchar_t short_form;
     wcstring long_form;
     wcstring description;
+    option_spec_t(bool t, wchar_t s, const wcstring& l, const wcstring &d):
+        takes_arg(t), short_form(s), long_form(l), description(d) {}
 };
 
 /* Function signature class */
 struct signature_t
 {
-    std::map<wchar_t, option_spec_t> short_options;
-    std::map<wcstring, option_spec_t> long_options;
+    std::vector<option_spec_t*> options;
+    std::map<wchar_t, option_spec_t*> short_options;
+    std::map<wcstring, option_spec_t*> long_options;
 };
 
 /* Helper class for managing a null-terminated array of null-terminated strings (of some char type) */

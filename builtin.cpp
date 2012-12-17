@@ -130,8 +130,8 @@ struct _builtin_data_t
 struct builtin_data_t
 {
     _builtin_func_t func;
-    const signature_t signature;
-    const wcstring desc;
+    signature_t signature;
+    wcstring desc;
     builtin_data_t(_builtin_func_t f, const signature_t &sig, const wcstring &d) : func(f), signature(sig), desc(d) {}
 };
 
@@ -4064,30 +4064,27 @@ void builtin_init()
     wopterr = 0;
     for (size_t i=0; i < BUILTIN_COUNT; i++)
     {
-        const wcstring name(_builtin_datas[i].name);
-        signature_t signature;
+        builtin_data_t *data = new builtin_data_t(
+                _builtin_datas[i].func, signature_t(), _builtin_datas[i].desc);
+        builtin_datas[_builtin_datas[i].name] = data;
         for (const _option_spec_t *p = _builtin_datas[i].signature; ; p++)
         {
             if (p->short_form == L'\0' && p->long_form[0] == L'\0')
             {
                 break;
             }
-            option_spec_t q;
-            q.takes_arg = p->takes_arg;
-            q.short_form = p->short_form;
-            q.long_form = p->long_form;
-            q.description = p->description;
-            if (p->short_form != L'\0')
+            option_spec_t *q = new option_spec_t(
+                        p->takes_arg, p->short_form, p->long_form, p->description);
+            data->signature.options.push_back(q);
+            if (q->short_form != L'\0')
             {
-                signature.short_options[q.short_form] = q;
+                data->signature.short_options[q->short_form] = q;
             }
-            if (p->long_form[0] != L'\0')
+            if (!q->long_form.empty())
             {
-                signature.long_options[q.long_form] = q;
+                data->signature.long_options[q->long_form] = q;
             }
         }
-        builtin_datas[name] = new builtin_data_t(
-                _builtin_datas[i].func, signature, _builtin_datas[i].desc);
     }
 }
 
