@@ -1331,7 +1331,7 @@ bool test_prefix(const wcstring &s, const wcstring &prefix)
 }
 
 /* Boolean options have this value when turned on */
-wcstring_list_t option_on(1, L"1");
+wcstring_list_t option_on;
 
 /**
    Parse options for the specified job
