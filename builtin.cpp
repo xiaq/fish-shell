@@ -1957,59 +1957,7 @@ static int builtin_random(parser_t &parser, wchar_t **argv, const options_t &opt
 
     int argc = builtin_count_args(argv);
 
-    woptind=0;
-
-    static const struct woption
-            long_options[] =
-    {
-        {
-            L"help", no_argument, 0, 'h'
-        }
-        ,
-        {
-            0, 0, 0, 0
-        }
-    }
-    ;
-
-    while (1)
-    {
-        int opt_index = 0;
-
-        int opt = wgetopt_long(argc,
-                               argv,
-                               L"h",
-                               long_options,
-                               &opt_index);
-        if (opt == -1)
-            break;
-
-        switch (opt)
-        {
-            case 0:
-                if (long_options[opt_index].flag != 0)
-                    break;
-                append_format(stderr_buffer,
-                              BUILTIN_ERR_UNKNOWN,
-                              argv[0],
-                              long_options[opt_index].name);
-                builtin_print_help(parser, argv[0], stderr_buffer);
-
-                return STATUS_BUILTIN_ERROR;
-
-            case 'h':
-                builtin_print_help(parser, argv[0], stdout_buffer);
-                break;
-
-            case '?':
-                builtin_unknown_option(parser, argv[0], argv[woptind-1]);
-                return STATUS_BUILTIN_ERROR;
-
-        }
-
-    }
-
-    switch (argc-woptind)
+    switch (argc-1)
     {
 
         case 0:
@@ -2033,13 +1981,13 @@ static int builtin_random(parser_t &parser, wchar_t **argv, const options_t &opt
             wchar_t *end=0;
 
             errno=0;
-            foo = wcstol(argv[woptind], &end, 10);
+            foo = wcstol(argv[1], &end, 10);
             if (errno || *end)
             {
                 append_format(stderr_buffer,
                               _(L"%ls: Seed value '%ls' is not a valid number\n"),
                               argv[0],
-                              argv[woptind]);
+                              argv[1]);
 
                 return STATUS_BUILTIN_ERROR;
             }
@@ -2053,7 +2001,7 @@ static int builtin_random(parser_t &parser, wchar_t **argv, const options_t &opt
             append_format(stderr_buffer,
                           _(L"%ls: Expected zero or one argument, got %d\n"),
                           argv[0],
-                          argc-woptind);
+                          argc-1);
             builtin_print_help(parser, argv[0], stderr_buffer);
             return STATUS_BUILTIN_ERROR;
         }
@@ -3891,7 +3839,7 @@ static const _builtin_data_t _builtin_datas[]=
     { 		L"not",  &builtin_generic, false, default_signature, N_(L"Negate exit status of job")  },
     { 		L"or",  &builtin_generic, false, default_signature, N_(L"Execute command if previous command failed")  },
     { 		L"pwd",  &builtin_pwd, false, default_signature, N_(L"Print the working directory")  },
-    { 		L"random",  &builtin_random, false, default_signature, N_(L"Generate random number")  },
+    { 		L"random",  &builtin_random, true, default_signature, N_(L"Generate random number")  },
     { 		L"read",  &builtin_read, false, default_signature, N_(L"Read a line of input into variables")   },
     { 		L"return",  &builtin_return, false, default_signature, N_(L"Stop the currently evaluated function")   },
     { 		L"set",  &builtin_set, false, default_signature, N_(L"Handle environment variables")   },
