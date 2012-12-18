@@ -1529,7 +1529,6 @@ void parser_t::parse_job_argument_list(process_t *p,
                                 }
                                 else
                                 {
-                                    opts_over = true;
                                     goto NON_OPTION;
                                 }
                             }
@@ -1583,7 +1582,6 @@ void parser_t::parse_job_argument_list(process_t *p,
                                     }
                                     else
                                     {
-                                        opts_over = true;
                                         goto NON_OPTION;
                                     }
                                 }
