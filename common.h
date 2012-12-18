@@ -357,6 +357,7 @@ struct option_spec_t
 /* Function signature class */
 struct signature_t
 {
+    bool authorative;
     std::vector<option_spec_t*> options;
     std::map<wchar_t, option_spec_t*> short_options;
     std::map<wcstring, option_spec_t*> long_options;

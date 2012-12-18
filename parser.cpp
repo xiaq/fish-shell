@@ -283,6 +283,12 @@ The fish parser. Contains functions for parsing and evaluating code.
 
 
 /**
+   Unknown option
+*/
+#define UNKNOWN_OPTION_ERR_MSG _( L"Unknown option '%ls'" )
+
+
+/**
    Long option requires an argument
 */
 #define LONG_OPTION_TAKES_ARGUMENT_ERR_MSG _( L"Option '--%ls' requires an argument" )
@@ -1330,6 +1336,12 @@ bool test_prefix(const wcstring &s, const wcstring &prefix)
     return !s.compare(0, prefix.size(), prefix);
 }
 
+void parser_t::bad_option(int pos, int type, const wcstring &opt)
+{
+    error(SYNTAX_ERROR, pos, UNKNOWN_OPTION_ERR_MSG, opt.c_str());
+    /* TODO: call builtin_print_help when type is INTERNAL_BUILTIN */
+}
+
 /* Boolean options have this value when turned on */
 wcstring_list_t option_on;
 
@@ -1521,16 +1533,16 @@ void parser_t::parse_job_argument_list(process_t *p,
                             key = token.substr(2, key_end);
                             if (!signature->long_options.count(key))
                             {
-                                /**
-                                 XXX Unknown options are treated as a
-                                 non-options now (instead of resulting in an
-                                 error). This is for compatibility with
-                                 builtins and functions that provides no
-                                 option specification in their signatures and
-                                 look into $argv for options.
-                                */
-                                opts_over = true;
-                                goto NON_OPTION;
+                                if (signature->authorative)
+                                {
+                                    bad_option(tok_get_pos(tok), p->type, L"--" + key);
+                                    break;
+                                }
+                                else
+                                {
+                                    opts_over = true;
+                                    goto NON_OPTION;
+                                }
                             }
 
                             if (signature->long_options.at(key)->takes_arg)
@@ -1569,18 +1581,28 @@ void parser_t::parse_job_argument_list(process_t *p,
                         {
                             /* short option */
                             wcstring::const_iterator opt_char;
+                            bool got_bad_option = false;
                             for (opt_char = token.begin()+1; opt_char != token.end(); opt_char++)
                             {
                                 if (! signature->short_options.count(*opt_char))
                                 {
-                                    opts_over = true;
-                                    // XXX see comment about unknown
-                                    // options above
-                                    goto NON_OPTION;
+                                    if (signature->authorative)
+                                    {
+                                        bad_option(tok_get_pos(tok), p->type, L"-" + wcstring(1, *opt_char));
+                                        got_bad_option = true;
+                                        break;
+                                    }
+                                    else
+                                    {
+                                        opts_over = true;
+                                        goto NON_OPTION;
+                                    }
                                 }
                                 if (signature->short_options.at(*opt_char)->takes_arg)
                                     break;
                             }
+                            if (got_bad_option)
+                                break;
                             for (opt_char = token.begin()+1; opt_char != token.end(); opt_char++)
                             {
                                 const option_spec_t &opt = *signature->short_options.at(*opt_char);
