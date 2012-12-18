@@ -1363,21 +1363,10 @@ void parser_t::parse_job_argument_list(process_t *p,
 {
     int is_finished=0;
 
-    int proc_is_count=0;
-
     int matched_wildcard = 0, unmatched_wildcard = 0;
 
     wcstring unmatched;
     int unmatched_pos=0;
-
-    /*
-      Test if this is the 'count' command. We need to special case
-      count in the shell, since it should display a help message on
-      'count -h', but not on 'set foo -h; count $foo'. This is an ugly
-      workaround and a huge hack, but as near as I can tell, the
-      alternatives are worse.
-    */
-    proc_is_count = (args.at(0).completion == L"count");
 
     /**
      After seeing an option that requires an argument, opt_key is set to the
