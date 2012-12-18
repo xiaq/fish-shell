@@ -3981,7 +3981,7 @@ int builtin_run(parser_t &parser, const wchar_t * const *argv, const options_t &
     const builtin_data_t *data = builtin_lookup(argv[0]);
     cmd = (builtin_func_t)(data ? data->func : NULL);
 
-    if (!internal_help(argv[0]) && (argv[1] == 0 && opts.size() == 1 && opts.count(L"help")))
+    if (!internal_help(argv[0]) && opts.count(L"help"))
     {
         builtin_print_help(parser, argv[0], stdout_buffer);
         return STATUS_BUILTIN_OK;
