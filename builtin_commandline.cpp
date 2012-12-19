@@ -197,6 +197,28 @@ static void write_part(const wchar_t *begin,
    The commandline builtin. It is used for specifying a new value for
    the commandline.
 */
+
+_option_spec_t commandline_signature[] =
+{
+    { false, L'a', L"append", L"" },
+    { false, L'i', L"insert", L"" },
+    { false, L'r', L"replace", L"" },
+    { false, L'j', L"current-job", L"" },
+    { false, L'p', L"current-process", L"" },
+    { false, L't', L"current-token", L"" },
+    { false, L'b', L"current-buffer", L"" },
+    { false, L'c', L"cut-at-cursor", L"" },
+    { false, L'f', L"function", L"" },
+    { false, L'o', L"tokenize", L"" },
+    { false, L'h', L"help", L"" },
+    { true, L'I', L"input", L"" },
+    { false, L'C', L"cursor", L"" },
+    { false, L'L', L"line", L"" },
+    { false, L'S', L"search-mode", L"" },
+    HELP_OPTION_SPEC,
+    END_OF_SIGNATURE
+};
+
 static int builtin_commandline(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
 
@@ -244,171 +266,27 @@ static int builtin_commandline(parser_t &parser, wchar_t **argv, const options_t
         return 1;
     }
 
-    woptind=0;
+    tokenize = opts.count(L"tokenize");
+    cut_at_cursor = opts.count(L"cut-at-cursor");
+    function_mode = opts.count(L"function");
+    cursor_mode = opts.count(L"cursor");
+    line_mode = opts.count(L"line");
+    search_mode = opts.count(L"search-mode");
+    append_mode = opts.count(L"append") ? APPEND_MODE :
+                  opts.count(L"insert") ? INSERT_MODE :
+                  opts.count(L"replace") ? REPLACE_MODE : 0;
+    buffer_part = opts.count(L"current-buffer") ? STRING_MODE :
+                  opts.count(L"current-token") ? TOKEN_MODE :
+                  opts.count(L"current-job") ? JOB_MODE :
+                  opts.count(L"current-process") ? PROCESS_MODE : 0;
 
-    while (1)
+    if (opts.count(L"input"))
     {
-        static const struct woption
-                long_options[] =
-        {
-            {
-                L"append", no_argument, 0, 'a'
-            }
-            ,
-            {
-                L"insert", no_argument, 0, 'i'
-            }
-            ,
-            {
-                L"replace", no_argument, 0, 'r'
-            }
-            ,
-            {
-                L"current-job", no_argument, 0, 'j'
-            }
-            ,
-            {
-                L"current-process", no_argument, 0, 'p'
-            }
-            ,
-            {
-                L"current-token", no_argument, 0, 't'
-            }
-            ,
-            {
-                L"current-buffer", no_argument, 0, 'b'
-            }
-            ,
-            {
-                L"cut-at-cursor", no_argument, 0, 'c'
-            }
-            ,
-            {
-                L"function", no_argument, 0, 'f'
-            }
-            ,
-            {
-                L"tokenize", no_argument, 0, 'o'
-            }
-            ,
-            {
-                L"help", no_argument, 0, 'h'
-            }
-            ,
-            {
-                L"input", required_argument, 0, 'I'
-            }
-            ,
-            {
-                L"cursor", no_argument, 0, 'C'
-            }
-            ,
-            {
-                L"line", no_argument, 0, 'L'
-            }
-            ,
-            {
-                L"search-mode", no_argument, 0, 'S'
-            }
-            ,
-            {
-                0, 0, 0, 0
-            }
-        }
-        ;
-
-        int opt_index = 0;
-
-        int opt = wgetopt_long(argc,
-                               argv,
-                               L"abijpctwforhI:CLS",
-                               long_options,
-                               &opt_index);
-        if (opt == -1)
-            break;
-
-        switch (opt)
-        {
-            case 0:
-                if (long_options[opt_index].flag != 0)
-                    break;
-                append_format(stderr_buffer,
-                              BUILTIN_ERR_UNKNOWN,
-                              argv[0],
-                              long_options[opt_index].name);
-                builtin_print_help(parser, argv[0], stderr_buffer);
-
-                return 1;
-
-            case L'a':
-                append_mode = APPEND_MODE;
-                break;
-
-            case L'b':
-                buffer_part = STRING_MODE;
-                break;
-
-
-            case L'i':
-                append_mode = INSERT_MODE;
-                break;
-
-            case L'r':
-                append_mode = REPLACE_MODE;
-                break;
-
-            case 'c':
-                cut_at_cursor=1;
-                break;
-
-            case 't':
-                buffer_part = TOKEN_MODE;
-                break;
-
-            case 'j':
-                buffer_part = JOB_MODE;
-                break;
-
-            case 'p':
-                buffer_part = PROCESS_MODE;
-                break;
-
-            case 'f':
-                function_mode=1;
-                break;
-
-            case 'o':
-                tokenize=1;
-                break;
-
-            case 'I':
-                current_buffer = woptarg;
-                current_cursor_pos = wcslen(woptarg);
-                break;
-
-            case 'C':
-                cursor_mode = 1;
-                break;
-
-            case 'L':
-                line_mode = 1;
-                break;
-
-            case 'S':
-                search_mode = 1;
-                break;
-
-            case 'h':
-                builtin_print_help(parser, argv[0], stdout_buffer);
-                return 0;
-
-            case L'?':
-                builtin_unknown_option(parser, argv[0], argv[woptind-1]);
-                return 1;
-        }
+        current_buffer = opts.at(L"input")[0].c_str();
+        current_cursor_pos = wcslen(woptarg);
     }
 
-    if (function_mode)
+    if (opts.count(L"function"))
     {
         int i;
 
@@ -426,7 +304,7 @@ static int builtin_commandline(parser_t &parser, wchar_t **argv, const options_t
         }
 
 
-        if (argc == woptind)
+        if (argc == 1)
         {
             append_format(stderr_buffer,
                           BUILTIN_ERR_MISSING,
@@ -435,7 +313,7 @@ static int builtin_commandline(parser_t &parser, wchar_t **argv, const options_t
             builtin_print_help(parser, argv[0], stderr_buffer);
             return 1;
         }
-        for (i=woptind; i<argc; i++)
+        for (i=1; i<argc; i++)
         {
             wint_t c = input_function_get_code(argv[i]);
             if (c != -1)
@@ -464,7 +342,7 @@ static int builtin_commandline(parser_t &parser, wchar_t **argv, const options_t
     /*
       Check for invalid switch combinations
     */
-    if ((search_mode || line_mode || cursor_mode) && (argc-woptind > 1))
+    if ((search_mode || line_mode || cursor_mode) && (argc-1 > 1))
     {
 
         append_format(stderr_buffer,
@@ -486,7 +364,7 @@ static int builtin_commandline(parser_t &parser, wchar_t **argv, const options_t
     }
 
 
-    if ((tokenize || cut_at_cursor) && (argc-woptind))
+    if ((tokenize || cut_at_cursor) && (argc-1))
     {
         append_format(stderr_buffer,
                       BUILTIN_ERR_COMBO2,
@@ -498,7 +376,7 @@ static int builtin_commandline(parser_t &parser, wchar_t **argv, const options_t
         return 1;
     }
 
-    if (append_mode && !(argc-woptind))
+    if (append_mode && !(argc-1))
     {
         append_format(stderr_buffer,
                       BUILTIN_ERR_COMBO2,
@@ -524,19 +402,19 @@ static int builtin_commandline(parser_t &parser, wchar_t **argv, const options_t
 
     if (cursor_mode)
     {
-        if (argc-woptind)
+        if (argc-1)
         {
             wchar_t *endptr;
             long new_pos;
             errno = 0;
 
-            new_pos = wcstol(argv[woptind], &endptr, 10);
+            new_pos = wcstol(argv[1], &endptr, 10);
             if (*endptr || errno)
             {
                 append_format(stderr_buffer,
                               BUILTIN_ERR_NOT_NUMBER,
                               argv[0],
-                              argv[woptind]);
+                              argv[1]);
                 builtin_print_help(parser, argv[0], stderr_buffer);
             }
 
@@ -607,7 +485,7 @@ static int builtin_commandline(parser_t &parser, wchar_t **argv, const options_t
 
     }
 
-    switch (argc-woptind)
+    switch (argc-1)
     {
         case 0:
         {
@@ -617,16 +495,16 @@ static int builtin_commandline(parser_t &parser, wchar_t **argv, const options_t
 
         case 1:
         {
-            replace_part(begin, end, argv[woptind], append_mode);
+            replace_part(begin, end, argv[1], append_mode);
             break;
         }
 
         default:
         {
-            wcstring sb = argv[woptind];
+            wcstring sb = argv[1];
             int i;
 
-            for (i=woptind+1; i<argc; i++)
+            for (i=2; i<argc; i++)
             {
                 sb.push_back(L'\n');
                 sb.append(argv[i]);

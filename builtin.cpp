@@ -95,6 +95,11 @@ struct _option_spec_t
 #define HELP_OPTION_SPEC { false, L'h', L"help", L"Display help message" }
 #define END_OF_SIGNATURE { false, 0, L"", L"" }
 
+_option_spec_t empty_signature[] =
+{
+    END_OF_SIGNATURE
+};
+
 _option_spec_t default_signature[] =
 {
     HELP_OPTION_SPEC,
@@ -686,6 +691,16 @@ static int builtin_bind(parser_t &parser, wchar_t **argv, const options_t &opts)
 /**
    The block builtin, used for temporarily blocking events
 */
+
+_option_spec_t block_signature[] =
+{
+    { false, L'e', L"erase", L"" },
+    { false, L'l', L"local", L"" },
+    { false, L'g', L"global", L"" },
+    HELP_OPTION_SPEC,
+    END_OF_SIGNATURE
+};
+
 static int builtin_block(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
     enum
@@ -696,87 +711,12 @@ static int builtin_block(parser_t &parser, wchar_t **argv, const options_t &opts
     }
     ;
 
-    int scope=UNSET;
-    int erase = 0;
-    int argc=builtin_count_args(argv);
     int type = (1<<EVENT_ANY);
 
-    woptind=0;
+    int scope = opts.count(L"global") ? GLOBAL :
+                opts.count(L"local") ? LOCAL : UNSET;
 
-    static const struct woption
-            long_options[] =
-    {
-        {
-            L"erase", no_argument, 0, 'e'
-        }
-        ,
-        {
-            L"local", no_argument, 0, 'l'
-        }
-        ,
-        {
-            L"global", no_argument, 0, 'g'
-        }
-        ,
-        {
-            L"help", no_argument, 0, 'h'
-        }
-        ,
-        {
-            0, 0, 0, 0
-        }
-    }
-    ;
-
-    while (1)
-    {
-        int opt_index = 0;
-
-        int opt = wgetopt_long(argc,
-                               argv,
-                               L"elgh",
-                               long_options,
-                               &opt_index);
-        if (opt == -1)
-            break;
-
-        switch (opt)
-        {
-            case 0:
-                if (long_options[opt_index].flag != 0)
-                    break;
-                append_format(stderr_buffer,
-                              BUILTIN_ERR_UNKNOWN,
-                              argv[0],
-                              long_options[opt_index].name);
-                builtin_print_help(parser, argv[0], stderr_buffer);
-
-                return STATUS_BUILTIN_ERROR;
-            case 'h':
-                builtin_print_help(parser, argv[0], stdout_buffer);
-                return STATUS_BUILTIN_OK;
-
-            case 'g':
-                scope = GLOBAL;
-                break;
-
-            case 'l':
-                scope = LOCAL;
-                break;
-
-            case 'e':
-                erase = 1;
-                break;
-
-            case '?':
-                builtin_unknown_option(parser, argv[0], argv[woptind-1]);
-                return STATUS_BUILTIN_ERROR;
-
-        }
-
-    }
-
-    if (erase)
+    if (opts.count(L"erase"))
     {
         if (scope != UNSET)
         {
@@ -893,57 +833,6 @@ static int builtin_emit(parser_t &parser, wchar_t **argv, const options_t &opts)
 */
 static int builtin_generic(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
-    int argc=builtin_count_args(argv);
-    woptind=0;
-
-    static const struct woption
-            long_options[] =
-    {
-        {
-            L"help", no_argument, 0, 'h'
-        }
-        ,
-        {
-            0, 0, 0, 0
-        }
-    }
-    ;
-
-    while (1)
-    {
-        int opt_index = 0;
-
-        int opt = wgetopt_long(argc,
-                               argv,
-                               L"h",
-                               long_options,
-                               &opt_index);
-        if (opt == -1)
-            break;
-
-        switch (opt)
-        {
-            case 0:
-                if (long_options[opt_index].flag != 0)
-                    break;
-                append_format(stderr_buffer,
-                              BUILTIN_ERR_UNKNOWN,
-                              argv[0],
-                              long_options[opt_index].name);
-                builtin_print_help(parser, argv[0], stderr_buffer);
-                return STATUS_BUILTIN_ERROR;
-
-            case 'h':
-                builtin_print_help(parser, argv[0], stdout_buffer);
-                return STATUS_BUILTIN_OK;
-
-            case '?':
-                builtin_unknown_option(parser, argv[0], argv[woptind-1]);
-                return STATUS_BUILTIN_ERROR;
-
-        }
-
-    }
     return STATUS_BUILTIN_ERROR;
 }
 
@@ -1068,10 +957,12 @@ static void functions_def(const wcstring &name, wcstring &out)
 
 _option_spec_t functions_signature[] =
 {
-    { false, L'a', L"all", L"Show hidden functions" },
-    { false, L'h', L"help", L"Display help and exit" },
-    { false, L'q', L"query", L"Test if function is defined" },
-    { false, L'n', L"names", L"List the names of the functions, but not their definition" },
+    { false, L'e', L"erase", L"" },
+    { true, L'd', L"description", L"" },
+    { false, L'n', L"names", L"" },
+    { false, L'a', L"all", L"" },
+    { false, L'q', L"query", L"" },
+    { false, L'c', L"copy", L"" },
     HELP_OPTION_SPEC,
     END_OF_SIGNATURE
 };
@@ -1080,7 +971,7 @@ static int builtin_functions(parser_t &parser, wchar_t **argv, const options_t &
 {
     int i;
     int erase=0;
-    wchar_t *desc=0;
+    const wchar_t *desc=0;
 
     int argc=builtin_count_args(argv);
     int list=0;
@@ -1089,106 +980,16 @@ static int builtin_functions(parser_t &parser, wchar_t **argv, const options_t &
     int query = 0;
     int copy = 0;
 
-    woptind=0;
-
-    static const struct woption
-            long_options[] =
+    erase = opts.count(L"erase");
+    list = opts.count(L"names");
+    show_hidden = opts.count(L"all");
+    query = opts.count(L"query");
+    copy = opts.count(L"copy");
+    if (opts.count(L"description"))
     {
-        {
-            L"erase", no_argument, 0, 'e'
-        }
-        ,
-        {
-            L"description", required_argument, 0, 'd'
-        }
-        ,
-        {
-            L"names", no_argument, 0, 'n'
-        }
-        ,
-        {
-            L"all", no_argument, 0, 'a'
-        }
-        ,
-        {
-            L"help", no_argument, 0, 'h'
-        }
-        ,
-        {
-            L"query", no_argument, 0, 'q'
-        }
-        ,
-        {
-            L"copy", no_argument, 0, 'c'
-        }
-        ,
-        {
-            0, 0, 0, 0
-        }
+        desc = opts.at(L"description")[0].c_str();
     }
-    ;
 
-    while (1)
-    {
-        int opt_index = 0;
-
-        int opt = wgetopt_long(argc,
-                               argv,
-                               L"ed:nahqc",
-                               long_options,
-                               &opt_index);
-        if (opt == -1)
-            break;
-
-        switch (opt)
-        {
-            case 0:
-                if (long_options[opt_index].flag != 0)
-                    break;
-                append_format(stderr_buffer,
-                              BUILTIN_ERR_UNKNOWN,
-                              argv[0],
-                              long_options[opt_index].name);
-                builtin_print_help(parser, argv[0], stderr_buffer);
-
-
-                return STATUS_BUILTIN_ERROR;
-
-            case 'e':
-                erase=1;
-                break;
-
-            case 'd':
-                desc=woptarg;
-                break;
-
-            case 'n':
-                list=1;
-                break;
-
-            case 'a':
-                show_hidden=1;
-                break;
-
-            case 'h':
-                builtin_print_help(parser, argv[0], stdout_buffer);
-                return STATUS_BUILTIN_OK;
-
-            case 'q':
-                query = 1;
-                break;
-
-            case 'c':
-                copy = 1;
-                break;
-
-            case '?':
-                builtin_unknown_option(parser, argv[0], argv[woptind-1]);
-                return STATUS_BUILTIN_ERROR;
-
-        }
-
-    }
 
     /*
       Erase, desc, query, copy and list are mutually exclusive
@@ -1207,7 +1008,7 @@ static int builtin_functions(parser_t &parser, wchar_t **argv, const options_t &
     if (erase)
     {
         int i;
-        for (i=woptind; i<argc; i++)
+        for (i=1; i<argc; i++)
             function_remove(argv[i]);
         return STATUS_BUILTIN_OK;
     }
@@ -1215,7 +1016,7 @@ static int builtin_functions(parser_t &parser, wchar_t **argv, const options_t &
     {
         wchar_t *func;
 
-        if (argc-woptind != 1)
+        if (argc-1 != 1)
         {
             append_format(stderr_buffer,
                           _(L"%ls: Expected exactly one function name\n"),
@@ -1224,7 +1025,7 @@ static int builtin_functions(parser_t &parser, wchar_t **argv, const options_t &
 
             return STATUS_BUILTIN_ERROR;
         }
-        func = argv[woptind];
+        func = argv[1];
         if (!function_exists(func))
         {
             append_format(stderr_buffer,
@@ -1241,7 +1042,7 @@ static int builtin_functions(parser_t &parser, wchar_t **argv, const options_t &
 
         return STATUS_BUILTIN_OK;
     }
-    else if (list || (argc==woptind))
+    else if (list || (argc==1))
     {
         int is_screen = !builtin_out_redirect && isatty(1);
         size_t i;
@@ -1275,7 +1076,7 @@ static int builtin_functions(parser_t &parser, wchar_t **argv, const options_t &
         wcstring current_func;
         wcstring new_func;
 
-        if (argc-woptind != 2)
+        if (argc-1 != 2)
         {
             append_format(stderr_buffer,
                           _(L"%ls: Expected exactly two names (current function name, and new function name)\n"),
@@ -1284,8 +1085,8 @@ static int builtin_functions(parser_t &parser, wchar_t **argv, const options_t &
 
             return STATUS_BUILTIN_ERROR;
         }
-        current_func = argv[woptind];
-        new_func = argv[woptind+1];
+        current_func = argv[1];
+        new_func = argv[1+1];
 
         if (!function_exists(current_func))
         {
@@ -1326,7 +1127,7 @@ static int builtin_functions(parser_t &parser, wchar_t **argv, const options_t &
         return STATUS_BUILTIN_ERROR;
     }
 
-    for (i=woptind; i<argc; i++)
+    for (i=1; i<argc; i++)
     {
         if (!function_exists(argv[i]))
             res++;
@@ -1334,7 +1135,7 @@ static int builtin_functions(parser_t &parser, wchar_t **argv, const options_t &
         {
             if (!query)
             {
-                if (i != woptind)
+                if (i != 1)
                     stdout_buffer.append(L"\n");
 
                 functions_def(argv[i], stdout_buffer);
@@ -1453,9 +1254,19 @@ static bool builtin_echo_parse_numeric_sequence(const wchar_t *str, size_t *cons
 }
 
 /** The echo builtin.
-    bash only respects -n if it's the first argument. We'll do the same.
-    We also support a new option -s to mean "no spaces"
+    In additional to the echo of most shells, we also support a new option -s
+    to mean "no spaces"
 */
+
+_option_spec_t echo_signature[] =
+{
+    { false, L'n', L"", L"" },
+    { false, L's', L"", L"" },
+    { false, L'e', L"", L"" },
+    { false, L'E', L"", L"" },
+    HELP_OPTION_SPEC,
+    END_OF_SIGNATURE
+};
 
 static int builtin_echo(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
@@ -1464,31 +1275,9 @@ static int builtin_echo(parser_t &parser, wchar_t **argv, const options_t &opts)
         return STATUS_BUILTIN_ERROR;
 
     /* Process options */
-    bool print_newline = true, print_spaces = true, interpret_special_chars = false;
-    while (*argv)
-    {
-        if (! wcscmp(*argv, L"-n"))
-        {
-            print_newline = false;
-        }
-        else if (! wcscmp(*argv, L"-s"))
-        {
-            print_spaces = false;
-        }
-        else if (! wcscmp(*argv, L"-e"))
-        {
-            interpret_special_chars = true;
-        }
-        else if (! wcscmp(*argv, L"-E"))
-        {
-            interpret_special_chars = false;
-        }
-        else
-        {
-            break;
-        }
-        argv++;
-    }
+    bool print_newline = !opts.count(L"n");
+    bool print_spaces = !opts.count(L"s");
+    bool interpret_special_chars = opts.count(L"e");
 
     /* The special character \c can be used to indicate no more output */
     bool continue_output = true;
@@ -2743,94 +2532,36 @@ static int builtin_count(parser_t &parser, wchar_t **argv, const options_t &opts
    Implementation of the builtin contains command, used to check if a
    specified string is part of a list.
  */
+
+_option_spec_t contains_signature[] =
+{
+    { false, L'i', L"index", L"" },
+    HELP_OPTION_SPEC,
+    END_OF_SIGNATURE
+};
+
 static int builtin_contains(parser_t &parser, wchar_t **argv, const options_t &opts)
 {
     int argc;
     argc = builtin_count_args(argv);
     int i;
     wchar_t *needle;
-    int index=0;
-
-    woptind=0;
-
-    const struct woption
-            long_options[] =
-    {
-        {
-            L"help", no_argument, 0, 'h'
-        }
-        ,
-        {
-            L"index", no_argument, 0, 'i'
-        }
-        ,
-        {
-            0, 0, 0, 0
-        }
-    }
-    ;
-
-    while (1)
-    {
-        int opt_index = 0;
-
-        int opt = wgetopt_long(argc,
-                               argv,
-                               L"+hi",
-                               long_options,
-                               &opt_index);
-        if (opt == -1)
-            break;
-
-        switch (opt)
-        {
-            case 0:
-                assert(opt_index >= 0 && (size_t)opt_index < sizeof long_options / sizeof *long_options);
-                if (long_options[opt_index].flag != 0)
-                    break;
-                append_format(stderr_buffer,
-                              BUILTIN_ERR_UNKNOWN,
-                              argv[0],
-                              long_options[opt_index].name);
-                builtin_print_help(parser, argv[0], stderr_buffer);
-                return STATUS_BUILTIN_ERROR;
+    int index = opts.count(L"index");
 
 
-            case 'h':
-                builtin_print_help(parser, argv[0], stdout_buffer);
-                return STATUS_BUILTIN_OK;
-
-
-            case ':':
-                builtin_missing_argument(parser, argv[0], argv[woptind-1]);
-                return STATUS_BUILTIN_ERROR;
-
-            case '?':
-                builtin_unknown_option(parser, argv[0], argv[woptind-1]);
-                return STATUS_BUILTIN_ERROR;
-
-            case 'i':
-                index=1;
-                break;
-        }
-
-    }
-
-
-
-    needle = argv[woptind];
+    needle = argv[1];
     if (!needle)
     {
         append_format(stderr_buffer, _(L"%ls: Key not specified\n"), argv[0]);
     }
 
 
-    for (i=woptind+1; i<argc; i++)
+    for (i=2; i<argc; i++)
     {
 
         if (!wcscmp(needle, argv[i]))
         {
-            if (index) append_format(stdout_buffer, L"%d\n", i-woptind);
+            if (index) append_format(stdout_buffer, L"%d\n", i-1);
             return 0;
         }
     }
@@ -3806,48 +3537,48 @@ static int builtin_history(parser_t &parser, wchar_t **argv, const options_t &op
 */
 static const _builtin_data_t _builtin_datas[]=
 {
-    { 		L".",  &builtin_source, false, default_signature, N_(L"Evaluate contents of file")   },
-    { 		L"and",  &builtin_generic, false, default_signature, N_(L"Execute command if previous command suceeded")  },
-    { 		L"begin",  &builtin_begin, false, default_signature, N_(L"Create a block of code")   },
-    { 		L"bg",  &builtin_bg, false, default_signature, N_(L"Send job to background")   },
+    { 		L".",  &builtin_source, true, default_signature, N_(L"Evaluate contents of file")   },
+    { 		L"and",  &builtin_generic, true, default_signature, N_(L"Execute command if previous command suceeded")  },
+    { 		L"begin",  &builtin_begin, true, empty_signature, N_(L"Create a block of code")   },
+    { 		L"bg",  &builtin_bg, true, default_signature, N_(L"Send job to background")   },
     { 		L"bind",  &builtin_bind, true, bind_signature, N_(L"Handle fish key bindings")  },
-    { 		L"block",  &builtin_block, false, default_signature, N_(L"Temporarily block delivery of events") },
-    { 		L"break",  &builtin_break_continue, false, default_signature, N_(L"Stop the innermost loop")   },
-    { 		L"breakpoint",  &builtin_breakpoint, false, default_signature, N_(L"Temporarily halt execution of a script and launch an interactive debug prompt")   },
+    { 		L"block",  &builtin_block, true, block_signature, N_(L"Temporarily block delivery of events") },
+    { 		L"break",  &builtin_break_continue, true, default_signature, N_(L"Stop the innermost loop")   },
+    { 		L"breakpoint",  &builtin_breakpoint, true, default_signature, N_(L"Temporarily halt execution of a script and launch an interactive debug prompt")   },
     { 		L"builtin",  &builtin_builtin, true, builtin_signature, N_(L"Run a builtin command instead of a function") },
-    { 		L"case",  &builtin_case, false, default_signature, N_(L"Conditionally execute a block of commands")   },
-    { 		L"cd",  &builtin_cd, false, default_signature, N_(L"Change working directory")   },
-    { 		L"command",   &builtin_generic, false, default_signature, N_(L"Run a program instead of a function or builtin")   },
-    { 		L"commandline",  &builtin_commandline, false, default_signature, N_(L"Set or get the commandline")   },
+    { 		L"case",  &builtin_case, true, default_signature, N_(L"Conditionally execute a block of commands")   },
+    { 		L"cd",  &builtin_cd, true, default_signature, N_(L"Change working directory")   },
+    { 		L"command",   &builtin_generic, true, default_signature, N_(L"Run a program instead of a function or builtin")   },
+    { 		L"commandline",  &builtin_commandline, true, commandline_signature, N_(L"Set or get the commandline")   },
     { 		L"complete",  &builtin_complete, false, default_signature, N_(L"Edit command specific completions")   },
-    { 		L"contains",  &builtin_contains, false, default_signature, N_(L"Search for a specified string in a list")   },
-    { 		L"continue",  &builtin_break_continue, false, default_signature, N_(L"Skip the rest of the current lap of the innermost loop")   },
-    { 		L"count",  &builtin_count, false, default_signature, N_(L"Count the number of arguments")   },
-    {       L"echo",  &builtin_echo, false, default_signature, N_(L"Print arguments") },
-    { 		L"else",  &builtin_else, false, default_signature, N_(L"Evaluate block if condition is false")   },
-    { 		L"emit",  &builtin_emit, false, default_signature, N_(L"Emit an event") },
-    { 		L"end",  &builtin_end, false, default_signature, N_(L"End a block of commands")   },
-    { 		L"exec",  &builtin_generic, false, default_signature, N_(L"Run command in current process")  },
-    { 		L"exit",  &builtin_exit, false, default_signature, N_(L"Exit the shell") },
-    { 		L"fg",  &builtin_fg, false, default_signature, N_(L"Send job to foreground")   },
-    { 		L"for",  &builtin_for, false, default_signature, N_(L"Perform a set of commands multiple times")   },
+    { 		L"contains",  &builtin_contains, true, contains_signature, N_(L"Search for a specified string in a list")   },
+    { 		L"continue",  &builtin_break_continue, true, default_signature, N_(L"Skip the rest of the current lap of the innermost loop")   },
+    { 		L"count",  &builtin_count, true, default_signature, N_(L"Count the number of arguments")   },
+    {       L"echo",  &builtin_echo, true, echo_signature, N_(L"Print arguments") },
+    { 		L"else",  &builtin_else, true, default_signature, N_(L"Evaluate block if condition is false")   },
+    { 		L"emit",  &builtin_emit, true, default_signature, N_(L"Emit an event") },
+    { 		L"end",  &builtin_end, true, default_signature, N_(L"End a block of commands")   },
+    { 		L"exec",  &builtin_generic, true, default_signature, N_(L"Run command in current process")  },
+    { 		L"exit",  &builtin_exit, true, default_signature, N_(L"Exit the shell") },
+    { 		L"fg",  &builtin_fg, true, default_signature, N_(L"Send job to foreground")   },
+    { 		L"for",  &builtin_for, true, default_signature, N_(L"Perform a set of commands multiple times")   },
     { 		L"function",  &builtin_function, false, default_signature, N_(L"Define a new function")   },
-    { 		L"functions",  &builtin_functions, false, default_signature, N_(L"List or remove functions")   },
+    { 		L"functions",  &builtin_functions, true, functions_signature, N_(L"List or remove functions")   },
     { 		L"history",  &builtin_history, false, default_signature, N_(L"History of commands executed by user")   },
-    { 		L"if",  &builtin_generic, false, default_signature, N_(L"Evaluate block if condition is true")   },
+    { 		L"if",  &builtin_generic, true, default_signature, N_(L"Evaluate block if condition is true")   },
     { 		L"jobs",  &builtin_jobs, false, default_signature, N_(L"Print currently running jobs")   },
-    { 		L"not",  &builtin_generic, false, default_signature, N_(L"Negate exit status of job")  },
-    { 		L"or",  &builtin_generic, false, default_signature, N_(L"Execute command if previous command failed")  },
-    { 		L"pwd",  &builtin_pwd, false, default_signature, N_(L"Print the working directory")  },
+    { 		L"not",  &builtin_generic, true, default_signature, N_(L"Negate exit status of job")  },
+    { 		L"or",  &builtin_generic, true, default_signature, N_(L"Execute command if previous command failed")  },
+    { 		L"pwd",  &builtin_pwd, true, default_signature, N_(L"Print the working directory")  },
     { 		L"random",  &builtin_random, true, default_signature, N_(L"Generate random number")  },
     { 		L"read",  &builtin_read, false, default_signature, N_(L"Read a line of input into variables")   },
-    { 		L"return",  &builtin_return, false, default_signature, N_(L"Stop the currently evaluated function")   },
+    { 		L"return",  &builtin_return, true, default_signature, N_(L"Stop the currently evaluated function")   },
     { 		L"set",  &builtin_set, false, default_signature, N_(L"Handle environment variables")   },
     { 		L"status",  &builtin_status, false, default_signature, N_(L"Return status information about fish")  },
-    { 		L"switch",  &builtin_switch, false, default_signature, N_(L"Conditionally execute a block of commands")   },
+    { 		L"switch",  &builtin_switch, true, default_signature, N_(L"Conditionally execute a block of commands")   },
     { 		L"test",  &builtin_test, false, default_signature, N_(L"Test a condition")   },
     { 		L"ulimit",  &builtin_ulimit, false, default_signature, N_(L"Set or get the shells resource usage limits")  },
-    { 		L"while",  &builtin_generic, false, default_signature, N_(L"Perform a command multiple times")   }
+    { 		L"while",  &builtin_generic, true, default_signature, N_(L"Perform a command multiple times")   }
 };
 
 static std::map<wcstring, const builtin_data_t*> builtin_datas;
