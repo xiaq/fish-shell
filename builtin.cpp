@@ -3546,7 +3546,7 @@ static const _builtin_data_t _builtin_datas[]=
     { 		L"break",  &builtin_break_continue, true, default_signature, N_(L"Stop the innermost loop")   },
     { 		L"breakpoint",  &builtin_breakpoint, true, default_signature, N_(L"Temporarily halt execution of a script and launch an interactive debug prompt")   },
     { 		L"builtin",  &builtin_builtin, true, builtin_signature, N_(L"Run a builtin command instead of a function") },
-    { 		L"case",  &builtin_case, true, default_signature, N_(L"Conditionally execute a block of commands")   },
+    { 		L"case",  &builtin_case, false, default_signature, N_(L"Conditionally execute a block of commands")   },
     { 		L"cd",  &builtin_cd, true, default_signature, N_(L"Change working directory")   },
     { 		L"command",   &builtin_generic, true, default_signature, N_(L"Run a program instead of a function or builtin")   },
     { 		L"commandline",  &builtin_commandline, true, commandline_signature, N_(L"Set or get the commandline")   },
