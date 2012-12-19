@@ -1675,7 +1675,9 @@ NON_OPTION:
                     {
                         if (error_code == 0)
                         {
-                            opts[opt_key] = completions_to_wcstring_list(opt_args);
+                            wcstring_list_t &args = opts[opt_key];
+                            wcstring_list_t more_args = completions_to_wcstring_list(opt_args);
+                            args.insert(args.end(), more_args.begin(), more_args.end());
                         }
                         opt_key = L"";
                         short_opt_key = 0;
