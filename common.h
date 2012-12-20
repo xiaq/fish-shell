@@ -361,6 +361,18 @@ struct signature_t
     std::vector<option_spec_t*> options;
     std::map<wchar_t, option_spec_t*> short_options;
     std::map<wcstring, option_spec_t*> long_options;
+    void add(option_spec_t *opt)
+    {
+        options.push_back(opt);
+        if (opt->short_form != L'\0')
+        {
+            short_options[opt->short_form] = opt;
+        }
+        if (!opt->long_form.empty())
+        {
+            long_options[opt->long_form] = opt;
+        }
+    }
 };
 
 /* Helper class for managing a null-terminated array of null-terminated strings (of some char type) */

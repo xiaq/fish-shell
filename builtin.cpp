@@ -3608,15 +3608,7 @@ void builtin_init()
             }
             option_spec_t *q = new option_spec_t(
                         p->takes_arg, p->short_form, p->long_form, p->description);
-            data->signature.options.push_back(q);
-            if (q->short_form != L'\0')
-            {
-                data->signature.short_options[q->short_form] = q;
-            }
-            if (!q->long_form.empty())
-            {
-                data->signature.long_options[q->long_form] = q;
-            }
+            data->signature.add(q);
         }
     }
 }
