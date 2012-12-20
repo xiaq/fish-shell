@@ -3577,7 +3577,7 @@ static int builtin_option(parser_t &parser, wchar_t **argv, const options_t &opt
                 }
                 else
                 {
-                    buf.append(p);
+                    buf.push_back(*p);
                 }
             }
             const wcstring desc = opts.count(L"description") ? opts.at(L"description")[0] : L"";
