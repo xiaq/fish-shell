@@ -582,6 +582,30 @@ void parse_util_set_argv(const wchar_t * const *argv, const wcstring_list_t &nam
 
 }
 
+void parse_util_set_opts(const options_t &opts)
+{
+    options_t::const_iterator opt;
+    for (opt = opts.begin(); opt != opts.end(); opt++)
+    {
+        wcstring key = opt->first;
+        if (key.size() == 1)
+        {
+            key = L"opt_" + key;
+        }
+        wcstring val;
+        wcstring_list_t::const_iterator arg;
+        for (arg = opt->second.begin(); arg != opt->second.end(); arg++)
+        {
+            if (arg != opt->second.begin())
+            {
+                val.append(ARRAY_SEP_STR);
+            }
+            val.append(*arg);
+        }
+        env_set(key, val.c_str(), ENV_LOCAL);
+    }
+}
+
 wchar_t *parse_util_unescape_wildcards(const wchar_t *str)
 {
     wchar_t *in, *out;

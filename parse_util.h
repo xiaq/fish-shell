@@ -119,6 +119,11 @@ size_t parse_util_get_offset(const wcstring &str, int line, long line_offset);
 void parse_util_set_argv(const wchar_t * const *argv, const wcstring_list_t &named_arguments);
 
 /**
+   Set the corresponding environment variable according to the option list.
+*/
+void parse_util_set_opts(const options_t &opts);
+
+/**
    Make a duplicate of the specified string, unescape wildcard
    characters but not performing any other character transformation.
 */

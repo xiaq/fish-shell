@@ -819,12 +819,13 @@ void exec(parser_t &parser, job_t *j)
 
 
                 /*
-                  set_argv might trigger an event
+                  set_argv and set_opts might trigger an event
                   handler, hence we need to unblock
                   signals.
                 */
                 signal_unblock();
                 parse_util_set_argv(p->get_argv()+1, named_arguments);
+                parse_util_set_opts(p->get_opts());
                 signal_block();
 
                 parser.forbid_function(p->argv0());
