@@ -162,6 +162,7 @@ function_info_t::function_info_t(const function_data_t &data, const wchar_t *fil
     definition_file(intern(filename)),
     definition_offset(def_offset),
     named_arguments(data.named_arguments),
+    signature(data.signature),
     is_autoload(autoload),
     shadows(data.shadows)
 {
@@ -173,6 +174,7 @@ function_info_t::function_info_t(const function_info_t &data, const wchar_t *fil
     definition_file(intern(filename)),
     definition_offset(def_offset),
     named_arguments(data.named_arguments),
+    signature(data.signature),
     is_autoload(autoload),
     shadows(data.shadows)
 {
@@ -273,6 +275,13 @@ wcstring_list_t function_get_named_arguments(const wcstring &name)
     scoped_lock lock(functions_lock);
     const function_info_t *func = function_get(name);
     return func ? func->named_arguments : wcstring_list_t();
+}
+
+const signature_t *function_get_signature(const wcstring &name)
+{
+    scoped_lock lock(functions_lock);
+    const function_info_t *func = function_get(name);
+    return func ? &func->signature : 0;
 }
 
 int function_get_shadows(const wcstring &name)

@@ -1398,8 +1398,7 @@ void parser_t::parse_job_argument_list(process_t *p,
         }
         case INTERNAL_FUNCTION:
         {
-            // TODO fetch signature of shellscript function
-            // a way to define signatures also needs to be introduced first.
+            signature = function_get_signature(args.at(0).completion);
             break;
         }
     }
@@ -2174,6 +2173,13 @@ int parser_t::parse_job(process_t *p,
                 }
             }
         }
+        else if (nxt == L"option")
+        {
+            if (current_block->type() == FUNCTION_DEF)
+            {
+                unskip = true;
+            }
+        }
 
         /*
           Test if we need another command
@@ -2559,6 +2565,14 @@ void parser_t::skipped_exec(job_t * j)
             else if (wcscmp(p->argv0(), L"case")==0)
             {
                 if (current_block->type() == SWITCH)
+                {
+                    exec(*this, j);
+                    return;
+                }
+            }
+            else if (wcscmp(p->argv0(), L"option") == 0)
+            {
+                if (current_block->type() == FUNCTION_DEF)
                 {
                     exec(*this, j);
                     return;

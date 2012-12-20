@@ -3527,6 +3527,75 @@ static int builtin_history(parser_t &parser, wchar_t **argv, const options_t &op
 
 
 /*
+  Declare function signature.
+*/
+
+_option_spec_t option_signature[] =
+{
+    { true, L'd', L"description", L"Description of option" },
+    HELP_OPTION_SPEC,
+    END_OF_SIGNATURE
+};
+
+static int builtin_option(parser_t &parser, wchar_t **argv, const options_t &opts)
+{
+    switch (parser.current_block->type())
+    {
+        case FUNCTION_DEF:
+        {
+            if (builtin_count_args(argv) != 2)
+            {
+                // TODO error message
+                break;
+            }
+            function_def_block_t *fdb = static_cast<function_def_block_t *>(parser.current_block);
+            function_data_t &d = fdb->function_data;
+
+            bool takes_arg = false;
+            wchar_t short_form = 0;
+            wcstring long_form;
+
+            wcstring buf;
+            for (wchar_t *p = argv[1]; ; p++)
+            {
+                if (*p == L',' || *p == L'\0')
+                {
+                    if (buf.size() == 1)
+                    {
+                        short_form = buf[0];
+                    }
+                    else
+                    {
+                        long_form = buf;
+                    }
+                    buf.clear();
+                    if (*p == L'\0')
+                        break;
+                }
+                else if (*p == L':')
+                {
+                    takes_arg = true;
+                }
+                else
+                {
+                    buf.append(p);
+                }
+            }
+            const wcstring desc = opts.count(L"description") ? opts.at(L"description")[0] : L"";
+            d.signature.add(new option_spec_t(takes_arg, short_form, long_form, desc));
+            break;
+        }
+        default:
+        {
+            // TODO detect incorrect use of `option` builtin
+            break;
+        }
+    }
+    return proc_get_last_status();
+}
+
+
+/*
   END OF BUILTIN COMMANDS
   Below are functions for handling the builtin commands.
 */
@@ -3568,6 +3637,7 @@ static const _builtin_data_t _builtin_datas[]=
     { 		L"if",  &builtin_generic, true, default_signature, N_(L"Evaluate block if condition is true")   },
     { 		L"jobs",  &builtin_jobs, false, default_signature, N_(L"Print currently running jobs")   },
     { 		L"not",  &builtin_generic, true, default_signature, N_(L"Negate exit status of job")  },
+    { 		L"option",  &builtin_option, true, option_signature, N_(L"Declare function signature")  },
     { 		L"or",  &builtin_generic, true, default_signature, N_(L"Execute command if previous command failed")  },
     { 		L"pwd",  &builtin_pwd, true, default_signature, N_(L"Print the working directory")  },
     { 		L"random",  &builtin_random, true, default_signature, N_(L"Generate random number")  },

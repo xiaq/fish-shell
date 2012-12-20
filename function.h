@@ -48,6 +48,8 @@ struct function_data_t
        List of all named arguments for this function
      */
     wcstring_list_t named_arguments;
+
+    signature_t signature;
     /**
        Set to non-zero if invoking this function shadows the variables
        of the underlying function.
@@ -78,6 +80,8 @@ public:
 
     /** List of all named arguments for this function */
     const wcstring_list_t named_arguments;
+
+    signature_t signature;
 
     /** Flag for specifying that this function was automatically loaded */
     const bool is_autoload;
@@ -154,6 +158,10 @@ const wchar_t *function_get_definition_file(const wcstring &name);
 */
 int function_get_definition_offset(const wcstring &name);
 
+/**
+   Returns the signature of the specified function.
+*/
+const signature_t *function_get_signature(const wcstring &name);
 /**
    Returns a list of all named arguments of the specified function.
 */
